@@ -5,7 +5,7 @@ import { Link } from '@inertiajs/vue3';
 <template>
     <Link :href="'/'">
 
-        <img src="/images/sopas nikas.png" alt="logo" class="w-20 h-20 text-gray-500 fill-current" />
+        <img src="/images/sopas nikas2.png" alt="logo" class="w-20 h-20 text-gray-500 fill-current" />
        <!-- <svg
             class="size-16"
             viewBox="0 0 48 48"
