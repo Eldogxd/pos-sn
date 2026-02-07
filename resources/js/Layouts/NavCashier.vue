@@ -4,9 +4,9 @@ import { Link } from '@inertiajs/vue3';
 
 <template>
     <nav class="flex space-x-4">
-                  <Link href="#" class="text-gray-600 hover:text-gray-800">Ordenes</Link>
-                  <Link href="#" class="text-gray-600 hover:text-gray-800">Gastos</Link>
-                  <Link href="#" class="text-gray-600 hover:text-gray-800">Historial Ordenes</Link>
-                  <Link href="#" class="text-gray-600 hover:text-gray-800">Cerrar Sesión</Link>
+                  <Link href="/Cashier" class="text-gray-600 hover:text-gray-800">Ordenes</Link>
+                  <!--<Link href="#" class="text-gray-600 hover:text-gray-800">Gastos</Link>-->
+                  <Link href="/invoices" class="text-gray-600 hover:text-gray-800">Facturas</Link>
+                  <!--<Link href="#" class="text-gray-600 hover:text-gray-800">Cerrar Sesión</Link>-->
      </nav>
     </template>

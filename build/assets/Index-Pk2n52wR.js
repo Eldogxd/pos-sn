@@ -182,7 +182,7 @@ https://sweetalert2.github.io/#ajax-request`),Ds(e),typeof e.title=="string"&&(e
       <body>
         <!-- Logo -->
         <div class="center">
-          <img src="/images/sopas nikasn.png" alt="Logo" />
+          <img src="/images/SopasLogo.png" alt="Logo" />
         </div>
 
         <!-- Empresa -->
@@ -320,7 +320,7 @@ https://sweetalert2.github.io/#ajax-request`),Ds(e),typeof e.title=="string"&&(e
       <body>
         <!-- Logo -->
         <div class="center">
-          <img src="/images/sopas nikasn.png" alt="Logo" />
+          <img src="/images/SopasLogo.png" alt="Logo" />
         </div>
 
         <!-- Empresa -->
@@ -428,7 +428,7 @@ https://sweetalert2.github.io/#ajax-request`),Ds(e),typeof e.title=="string"&&(e
       <body>
         <!-- Logo -->
         <div class="center">
-          <img src="/images/sopas nikasn.png" alt="Logo" />
+          <img src="/images/SopasLogo.png" alt="Logo" />
         </div>
 
         <!-- Empresa -->

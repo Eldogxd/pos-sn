@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('table_id')->nullable()->constrained()->onDelete('set null');
             $table->string('type');
             $table->string('customer_name')->nullable();
-            $table->enum('status',['abierta','cerrada','cancelada'])->default('abierta');
+            $table->enum('status',['abierta','cerrada','cancelada','asignada','en_camino','entregada'])->default('abierta');
             $table->text('indications')->nullable();
             $table->string('discount_type', 10)->nullable(); // 'amount' o 'percent'
             $table->decimal('discount_value', 10, 2)->nullable();

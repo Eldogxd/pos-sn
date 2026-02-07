@@ -2,11 +2,11 @@
 <template>
     <AppLayout title="Mesas">
         <template #header>
-            <div class="flex items-center justify-between">
+           <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <h2 class="text-xl font-semibold leading-tight text-gray-800">
-              Panel de Administrador
+              Mesas
             </h2>
-            <NavLayout />
+             <NavLayout />
             </div>
         </template>
 

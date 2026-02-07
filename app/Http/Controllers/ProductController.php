@@ -26,12 +26,16 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'price' => 'required|numeric',
             'category' => 'required|string|max:255',
+            'is_py' => 'nullable|boolean',
+            'py_price' => 'nullable|numeric',
         ]);
 
         Product::create([
             'name' => $request->name,
             'price' => $request->price,
             'category' => $request->category,
+            'is_py' => $request->is_py,
+            'py_price' => $request->py_price,
         ]);
 
         return redirect()->back();
@@ -42,15 +46,20 @@ class ProductController extends Controller
             'name' => 'nullable|string|max:255',
             'price' => 'nullable|numeric',
             'category' => 'nullable|string|max:255',
+            'is_py' => 'nullable|boolean',
+            'py_price' => 'nullable|numeric',
         ]);
-    
-        $product->update($request->only('name', 'price', 'category'));
-    
+
+        $product->update($request->only('name', 'price', 'category', 'is_py', 'py_price'));
+
         return redirect()->back();
     }
 
     public function destroy(Product $product)
     {
+        if ($product->is_generic) {
+            return redirect()->back()->withErrors(['error' => 'No se puede eliminar un producto genérico.']);
+        }
         $product->delete();
         return redirect()->back();
     }

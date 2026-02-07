@@ -49,7 +49,7 @@ import { Link } from '@inertiajs/vue3';
             -->
 
             <div class="relative flex flex-col h-48 text-gray-700 bg-white shadow-md group rounded-xl bg-clip-border">
-                <Link href="/Delivery" class="block">
+                <Link href="/delivery" class="block">
                     <div class="h-28">
                         <div
                             class="absolute -top-20 lg:top-[-10%] left-[5%] z-40  group-hover:top-[-40%] group-hover:opacity-[0.9]   duration-300 w-[90%] h-48 bg-mantis-400 rounded-xl justify-items-center align-middle">

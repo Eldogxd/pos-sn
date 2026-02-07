@@ -10,5 +10,8 @@ class Product extends Model
         'name',
         'price',
         'category',
+        'is_generic',
+        'is_py',
+        'py_price',
     ];
 }

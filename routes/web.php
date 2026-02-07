@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -13,6 +14,12 @@ use App\Http\Controllers\TableController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\DeliveryController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\RiderController;
+use App\Http\Controllers\Admin\DashboardController;
+
+
 
 
 Route::get('/', function () {
@@ -33,6 +40,8 @@ Route::middleware([
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
+
+    
 });
 
 
@@ -64,31 +73,75 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::put('/mesas/{table}', [TableController::class,'update'])->name('mesas.update');
     Route::delete('/mesas/{table}', [TableController::class,'destroy'])->name('mesas.destroy');
 
+    Route::get('/riders', [RiderController::class, 'index'])->name('riders.index');
+    Route::post('/riders', [RiderController::class, 'store'])->name('riders.store');
+    Route::put('/riders/{rider}', [RiderController::class, 'update'])->name('riders.update');
+    Route::delete('/riders/{rider}', [RiderController::class, 'destroy'])->name('riders.destroy');
+
+    Route::post('/invoices/{invoice}/annul', [InvoiceController::class, 'annul'])->name('invoices.annul');
+
+    Route::get('/admin/dashboard', [DashboardController::class,'index'])->name('admin.dashboard.index');
+    Route::get('/admin/dashboard/data', [DashboardController::class,'data'])->name('admin.dashboard.data');
+    Route::get('/admin/dashboard/rider-products', [DashboardController::class, 'riderProducts'])->name('admin.dashboard.rider-products');
+    Route::get('/admin/dashboard/discounted-orders', [DashboardController::class, 'getDiscountedOrders'])->name('admin.dashboard.discounted-orders');
+    Route::get('/admin/dashboard/rider-delivery-fees', [DashboardController::class, 'getRiderDeliveryFees'])->name('admin.dashboard.rider-delivery-fees');
+
+
+
 
 
 });
 
 
 
-Route::get('/Cashier', [CashierController::class, 'index'])->name('cashier.index');
+// Rutas para el Cajero
+Route::middleware(['auth', 'role:cajero,admin'])->group(function () {
+    Route::get('/Cashier', [CashierController::class, 'index'])->name('cashier.index');
 
-Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
-Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
-Route::post('/orders/{order}/discount', [OrderController::class, 'UpdateDiscount'])->name('orders.updateDiscount');
-Route::post('/orders/{order}/remove-discount', [OrderController::class, 'removeDiscount'])->name('orders.removeDiscount');
-Route::get('/orders/{id}/pdf', [OrderController::class, 'generateInvoiceAndClose'])->name('orders.generate-pdf-and-close');
-Route::get('/orders/{id}/partial', [OrderController::class, 'generatePartialInvoice'])->name('orders.generate-partial-invoice');
-Route::post('/orders/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
-Route::get('/next-invoice-number', [InvoiceController::class, 'getNextInvoiceNumber']);
-Route::post('/partial-invoices', [InvoiceController::class, 'store']);
-Route::post('/invoices/Final', [InvoiceController::class, 'storeFinal']);
+    Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
+    Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
+    Route::post('/orders/{order}/discount', [OrderController::class, 'UpdateDiscount'])->name('orders.updateDiscount');
+    Route::post('/orders/{order}/remove-discount', [OrderController::class, 'removeDiscount'])->name('orders.removeDiscount');
+    Route::get('/orders/{id}/pdf', [OrderController::class, 'generateInvoiceAndClose'])->name('orders.generate-pdf-and-close');
+    Route::post('/orders/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::get('/next-invoice-number', [InvoiceController::class, 'getNextInvoiceNumber']);
+    Route::post('/partial-invoices', [InvoiceController::class, 'store']);
+    Route::post('/invoices/Final', [InvoiceController::class, 'storeFinal']);
+    Route::post('/invoices/takeaway', [InvoiceController::class, 'takeAwayInvoice'])->name('invoices.takeAway');
+    Route::post('/invoices/pedidosya', [InvoiceController::class, 'pedidosYaInvoice'])->name('invoices.pedidosYa');
+    Route::post('/orders/{order}/transferTable', [OrderController::class, 'transferTable'])->name('orders.transfertable');
+    Route::post('/takeaway-orders', [OrderController::class, 'storeTakeAwayOrder'])->name('orders.storeTakeAway');
+    Route::post('/pedidosya-orders', [OrderController::class, 'storePedidosYaOrder'])->name('orders.storePedidosYa');
+});
+
+
+
+
+
+//Historial de ordenes
+Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
 
 
 
 
 
 
-
+// Delivery Routes
+    Route::middleware(['auth', 'role:delivery,admin'])->group(function () {
+        Route::get('/delivery', [DeliveryController::class, 'index'])->name('delivery.index');
+        Route::get('/delivery/{order}', [DeliveryController::class, 'show'])->name('delivery.show'); // <-- agregar
+        Route::post('/delivery', [OrderController::class, 'storeDeliveryOrder'])->name('delivery.store');
+        Route::put('/delivery/{order}', [OrderController::class, 'updateDeliveryOrder'])->name('delivery.update');
+        Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+        Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
+        Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+        Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
+        Route::get('/search-customers', [CustomerController::class, 'search'])->name('customers.search');
+        Route::put('/delivery/{order}/assign-rider', [DeliveryController::class, 'assignRider'])->name('delivery.assignRider');
+        Route::put('/delivery/{order}/status', [DeliveryController::class, 'updateStatus'])->name('delivery.updateStatus');
+        Route::post('/invoices/delivery', [InvoiceController::class, 'deliveryInvoice'])->name('invoices.delivery.store');
+        Route::post('/delivery/{order}/cancel', [DeliveryController::class, 'cancel'])->name('delivery.cancel');
+    });
 
 
 
@@ -97,6 +150,6 @@ Route::post('/invoices/Final', [InvoiceController::class, 'storeFinal']);
 //     return Inertia::render('Kitchen/index');
 // });
 
-Route::get('/Delivery', function () {
-    return Inertia::render('Delivery/index');
-});
+// Route::get('/Delivery', function () {
+//     return Inertia::render('Delivery/index');
+// });

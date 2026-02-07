@@ -26,7 +26,7 @@ class TableController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'number' => 'required|integer',
+            'number' => 'required|string',
             'status' => 'required|in:Libre,Ocupada',
         ]);
 
@@ -41,7 +41,7 @@ class TableController extends Controller
     public function update(Request $request, Table $table)
     {
         $request->validate([
-            'number' => 'nullable|integer',
+            'number' => 'nullable|string',
             'status' => 'nullable|in:Libre,Ocupada',
         ]);
 

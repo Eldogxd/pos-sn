@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Invoice extends Model
 {
@@ -16,31 +17,34 @@ class Invoice extends Model
         'discount_value',
         'discount_reason',
         'total',
+        'status',
     ];
 
     public function order()
 {
     return $this->belongsTo(Order::class);
 }
+
+
 public static function generateInvoiceNumber()
 {
-    // Bloquear consulta para evitar problemas en concurrencia
-    $lastInvoice = self::lockForUpdate()
-                      ->whereNotNull('invoice_number')
-                      ->orderByDesc('id')
-                      ->first();
+    return DB::transaction(function () {
+        $lastInvoice = self::lockForUpdate()
+                          ->whereNotNull('invoice_number')
+                          ->orderByDesc('id')
+                          ->first();
 
-    if ($lastInvoice) {
-        // Extraer solo el número del código actual (ej: FAC-000005 -> 5)
-        preg_match('/\d+/', $lastInvoice->invoice_number, $matches);
-        $lastNumber = (int)$matches[0];
-        $newNumber = $lastNumber + 1;
-    } else {
-        // Si no hay facturas aún, comenzar desde 1
-        $newNumber = 1;
-    }
+        if ($lastInvoice) {
+            preg_match('/\d+/', $lastInvoice->invoice_number, $matches);
+            $lastNumber = (int)$matches[0];
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
 
-    return 'FAC-' . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
+        return 'FAC-' . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
+    });
 }
+
 
 }

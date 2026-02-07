@@ -3,46 +3,70 @@
 <template>
     <AppLayout title="Usuarios">
         <template #header>
-            <div class="flex items-center justify-between">
+           <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <h2 class="text-xl font-semibold leading-tight text-gray-800">
-              Panel de Administrador
+              Usuarios
             </h2>
-            <NavLayout />
+             <NavLayout />
             </div>
         </template>
 
-        <div class="p-10">
+        <div class="p-4 md:p-10">
     <h1 class="mb-4 text-2xl font-bold">Usuarios</h1>
 
-    <button @click="openCreateModal" class="px-4 py-2 mb-4 text-white rounded bg-mantis-500 hover:bg-mantis-600">
+    <button @click="openCreateModal" class="w-full px-4 py-2 mb-4 text-white rounded md:w-auto bg-mantis-500 hover:bg-mantis-600">
       Crear Usuario
     </button>
 
-    <table class="w-full border">
-      <thead>
-        <tr class="text-left bg-gray-100">
-          <th class="p-2 border">Nombre</th>
-          <th class="p-2 border">Email</th>
-          <th class="p-2 border">Rol</th>
-          <th class="p-2 border">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50">
-          <td class="p-2 border">{{ user.name }}</td>
-          <td class="p-2 border">{{ user.email }}</td>
-          <td class="p-2 border">{{ user.role }}</td>
-          <td class="p-2 border">
-            <button @click="openEditModal(user)" class="mr-2 text-mantis-400">Editar</button>
-            <button @click="deleteUser(user.id)" class="text-red-400">Eliminar</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <!-- Desktop / Tablet Table -->
+    <div class="hidden w-full md:block">
+      <div class="overflow-x-auto border rounded">
+        <table class="w-full text-sm border-none">
+          <thead>
+            <tr class="text-left bg-gray-100">
+              <th class="p-2 border">Nombre</th>
+              <th class="p-2 border">Email</th>
+              <th class="p-2 border">Rol</th>
+              <th class="p-2 border">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="user in users" :key="user.id" class="transition-colors hover:bg-gray-50">
+              <td class="p-2 border">{{ user.name }}</td>
+              <td class="p-2 border">{{ user.email }}</td>
+              <td class="p-2 border">{{ user.role }}</td>
+              <td class="p-2 border">
+                <div class="flex flex-wrap gap-2">
+                  <button @click="openEditModal(user)" class="text-mantis-500 hover:underline">Editar</button>
+                  <button @click="deleteUser(user.id)" class="text-red-500 hover:underline">Eliminar</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Mobile Cards -->
+    <div class="space-y-3 md:hidden">
+      <div v-for="user in users" :key="user.id" class="p-4 border rounded shadow-sm bg-white/70 backdrop-blur-sm">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-base font-semibold text-gray-800">{{ user.name }}</p>
+            <p class="text-xs text-gray-500">{{ user.email }}</p>
+          </div>
+          <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">{{ user.role }}</span>
+        </div>
+        <div class="flex gap-4 mt-3 text-sm">
+          <button @click="openEditModal(user)" class="font-medium text-mantis-600">Editar</button>
+          <button @click="deleteUser(user.id)" class="font-medium text-red-500">Eliminar</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Modal -->
-    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-      <div class="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
+    <div v-if="showModal" class="fixed inset-0 z-50 flex items-start justify-center pt-10 overflow-y-auto bg-black bg-opacity-40">
+      <div class="w-full max-w-md p-6 mx-4 bg-white rounded-lg shadow-md sm:mx-auto">
         <h2 class="mb-4 text-xl font-bold">{{ editMode ? 'Editar Usuario' : 'Crear Usuario' }}</h2>
 
         <form @submit.prevent="submit">
@@ -76,9 +100,9 @@
             </select>
           </div>
 
-          <div class="flex justify-end gap-2">
-            <button type="button" @click="closeModal" class="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
-            <button type="submit" class="px-4 py-2 text-white rounded bg-mantis-400">
+          <div class="flex flex-col justify-end gap-2 sm:flex-row">
+            <button type="button" @click="closeModal" class="w-full px-4 py-2 bg-gray-200 rounded sm:w-auto hover:bg-gray-300">Cancelar</button>
+            <button type="submit" class="w-full px-4 py-2 text-white rounded sm:w-auto bg-mantis-500 hover:bg-mantis-600">
               {{ editMode ? 'Actualizar' : 'Guardar' }}
             </button>
           </div>

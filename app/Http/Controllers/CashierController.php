@@ -17,6 +17,15 @@ class CashierController extends Controller
         $products = Product::all();
         $orders = Order::all();
 
+         // Comparte los flashes con Inertia
+    if (session()->has('order_id')) {
+        Inertia::share('flash.order_id', session('order_id'));
+    }
+
+    if (session()->has('success')) {
+        Inertia::share('flash.success', session('success'));
+    }
+    
         return Inertia::render('Cashier/Index', [
             'products'=> $products,
             'tables'=> $tables,

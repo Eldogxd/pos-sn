@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tables', function (Blueprint $table) {
             $table->id();
-            $table->integer('number')->unsigned();
+            $table->string('number');
             $table->enum('status', ['Libre',  'Ocupada'])->default('Libre');
             $table->timestamps();
         });
