@@ -383,7 +383,7 @@ function toggleSort(field) {
                      <p class="bold">Sopas Nikas</p>
                      <p>Del Busto José Martí<br>2 cuadras al Este, 10 vrs al Norte.</p>
                      <p>Teléfono: +505 8352 9705</p>
-                     <p><strong>RUC:0011602970002Q</strong></p>
+                      
                         <p><strong>Factura N°: ${invoice.invoice_number}</strong></p>
                      
                  </div>

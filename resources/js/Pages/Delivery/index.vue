@@ -1544,7 +1544,7 @@ function generateInvoiceHTML(invoice) {
       <p class="bold">Sopas Nikas</p>
       <p><strong>Dirección: Del Busto José Martí 2 cuadras al Este, 10 vrs al Norte.</strong></p>
       <p>Teléfono: +505 8352 9705</p>
-      <p><strong>RUC:0011602970002Q</strong></p>
+       
       <p><strong>Factura N°:</strong> ${escapeHtml(String(invoice.invoice_number || invoice.invoiceNumber || '—'))}</p>
      
     </div>

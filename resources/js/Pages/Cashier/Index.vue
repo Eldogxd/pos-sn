@@ -1627,7 +1627,7 @@ function getPartialInvoiceHTML(items, discount) {
           <p class="bold">Sopas Nikas</p>
           <p><strong>Dirección: Del Busto José Martí 2 cuadras al Este, 10 vrs al Norte.</strong></p>
           <p>Teléfono: +505 8352 9705</p>
-          <p><strong>RUC:0011602970002Q</strong></p>
+           
           <p><strong>Factura N°: ${nextInvoiceNumber.value}</strong></p>
           
         </div>
@@ -1793,7 +1793,7 @@ function getTakeawayInvoiceHTML(items, discount, subtotal, discountAmount, total
           <p class="bold">Sopas Nikas</p>
           <p><strong>Dirección: Del Busto José Martí 2 cuadras al Este, 10 vrs al Norte.</strong></p>
           <p>Teléfono: +505 8352 9705</p>
-          <p><strong>RUC:0011602970002Q</strong></p>
+           
           <p><strong>Factura N°: ${nextInvoiceNumber.value}</strong></p>
           
         </div>
@@ -1982,7 +1982,7 @@ function getPedidosYaInvoiceHTML(items, discount, subtotal, discountAmount, tota
           <p class="bold">Sopas Nikas</p>
           <p><strong>Dirección: Del Busto José Martí 2 cuadras al Este, 10 vrs al Norte.</strong></p>
           <p>Teléfono: +505 8352 9705</p>
-          <p><strong>RUC:0011602970002Q</strong></p>
+           
           <p><strong>Factura N°: ${invoiceNumber}</strong></p>
           
         </div>
@@ -2173,7 +2173,7 @@ for (const p of items.filter(p => p.payment_status !== 'paid')) {
           <p class="bold">Sopas Nikas</p>
           <p><strong>Dirección: Del Busto José Martí 2 cuadras al Este, 10 vrs al Norte.</strong></p>
           <p>Teléfono: +505 8352 9705</p>
-          <p><strong>RUC:0011602970002Q</strong></p>
+           
           <p><strong>Factura N°: ${nextInvoiceNumber.value}</strong></p>
           
         </div>
