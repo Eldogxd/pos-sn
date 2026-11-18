@@ -19,7 +19,7 @@
             <span class="font-semibold text-amber-700">{{ tableStats.busy }}</span> ocupadas
           </p>
         </div>
-        <div class="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
+        <div class="grid grid-cols-1 gap-2 sm:flex sm:gap-3">
           <button @click="openTakeawayModal" class="h-12 btn btn-primary sm:h-11">
             <i class="pi pi-shopping-bag"></i> Para llevar
           </button>
