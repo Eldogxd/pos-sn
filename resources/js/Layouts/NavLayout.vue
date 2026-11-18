@@ -1,38 +1,55 @@
-<script setup>
-import { ref } from 'vue';
-import { Link } from '@inertiajs/vue3';
-
-const isOpen = ref(false);
-</script>
-
 <template>
-    <div>
-        <!-- Botón de menú móvil -->
-        <div class="flex items-center md:hidden">
-            <button @click="isOpen = !isOpen" class="text-gray-600 hover:text-gray-800 focus:outline-none">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path :class="{'hidden': isOpen, 'inline-flex': !isOpen }" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                    <path :class="{'hidden': !isOpen, 'inline-flex': isOpen }" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-
-        <!-- Menú de escritorio -->
-        <nav class="hidden space-x-4 md:flex">
-            <Link href="/usuarios" class="text-gray-600 hover:text-gray-800">Usuarios</Link>
-            <Link href="/productos" class="text-gray-600 hover:text-gray-800">Productos</Link>
-            <Link href="/mesas" class="text-gray-600 hover:text-gray-800">Mesas</Link>
-            <Link href="/riders" class="text-gray-600 hover:text-gray-800">Motorizados</Link>
-        </nav>
-
-        <!-- Menú desplegable móvil -->
-        <div v-show="isOpen" class="md:hidden">
-            <nav class="flex flex-col pt-2 pb-4 space-y-1">
-                <Link href="/usuarios" class="block px-3 py-2 text-base font-medium text-gray-600 rounded-md hover:text-gray-800 hover:bg-gray-50">Usuarios</Link>
-                <Link href="/productos" class="block px-3 py-2 text-base font-medium text-gray-600 rounded-md hover:text-gray-800 hover:bg-gray-50">Productos</Link>
-                <Link href="/mesas" class="block px-3 py-2 text-base font-medium text-gray-600 rounded-md hover:text-gray-800 hover:bg-gray-50">Mesas</Link>
-                <Link href="/riders" class="block px-3 py-2 text-base font-medium text-gray-600 rounded-md hover:text-gray-800 hover:bg-gray-50">Motorizados</Link>
-            </nav>
-        </div>
-    </div>
+  <nav class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+    <Link
+      href="/Admin"
+      class="nav-pill shrink-0"
+      :class="isSummaryActive ? 'nav-pill-active' : ''"
+    >
+      <i class="pi pi-chart-bar text-xs"></i>
+      <span>Resumen</span>
+    </Link>
+    <Link
+      href="/usuarios"
+      class="nav-pill shrink-0"
+      :class="currentUrl.startsWith('/usuarios') ? 'nav-pill-active' : ''"
+    >
+      <i class="pi pi-users text-xs"></i>
+      <span>Usuarios</span>
+    </Link>
+    <Link
+      href="/productos"
+      class="nav-pill shrink-0"
+      :class="currentUrl.startsWith('/productos') ? 'nav-pill-active' : ''"
+    >
+      <i class="pi pi-box text-xs"></i>
+      <span>Productos</span>
+    </Link>
+    <Link
+      href="/mesas"
+      class="nav-pill shrink-0"
+      :class="currentUrl.startsWith('/mesas') ? 'nav-pill-active' : ''"
+    >
+      <i class="pi pi-th-large text-xs"></i>
+      <span>Mesas</span>
+    </Link>
+    <Link
+      href="/riders"
+      class="nav-pill shrink-0"
+      :class="currentUrl.startsWith('/riders') ? 'nav-pill-active' : ''"
+    >
+      <i class="pi pi-truck text-xs"></i>
+      <span>Motorizados</span>
+    </Link>
+  </nav>
 </template>
+
+<script setup>
+import { computed } from 'vue';
+import { Link, usePage } from '@inertiajs/vue3';
+
+const page = usePage();
+const currentUrl = computed(() => page.url || '');
+const isSummaryActive = computed(() =>
+  currentUrl.value.startsWith('/Admin') || currentUrl.value.startsWith('/admin/dashboard')
+);
+</script>

@@ -1,229 +1,371 @@
 <template>
-  <AppLayout>
+  <AppLayout title="Admin Dashboard">
     <template #header>
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 class="text-xl font-semibold leading-tight text-gray-800">Panel de Administrador</h2>
-          <p class="mt-1 text-sm text-gray-500">Resumen de ventas, órdenes y productos</p>
-        </div>
-        <NavLayout />
-      </div>
+      <NavLayout />
     </template>
 
-    <div class="px-4 py-6 mx-auto space-y-6 max-w-7xl sm:px-6 lg:px-8">
-      <!-- Filters -->
-      <div class="p-4 bg-white border border-gray-100 shadow-sm rounded-xl">
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-5">
-          <div class="flex items-center w-full gap-2">
-            <label class="text-sm text-gray-600">Desde</label>
-            <flat-pickr v-model="filters.from" :config="flatpickrConfig" class="w-full p-2 border rounded-lg" placeholder="DD/MM/AAAA" />
+    <div class="p-3 mx-auto space-y-4 max-w-7xl sm:p-6">
+      <!-- Barra de filtros -->
+      <div class="p-3.5 card sm:p-5">
+        <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-12 sm:items-end">
+          <div class="col-span-1 sm:col-span-3">
+            <label class="label">Desde</label>
+            <flat-pickr v-model="filters.from" :config="flatpickrConfig" class="input" placeholder="DD/MM/AAAA" />
           </div>
-          <div class="flex items-center w-full gap-2">
-            <label class="text-sm text-gray-600">Hasta</label>
-            <flat-pickr v-model="filters.to" :config="flatpickrConfig" class="w-full p-2 border rounded-lg" placeholder="DD/MM/AAAA" />
+          <div class="col-span-1 sm:col-span-3">
+            <label class="label">Hasta</label>
+            <flat-pickr v-model="filters.to" :config="flatpickrConfig" class="input" placeholder="DD/MM/AAAA" />
           </div>
-          <div class="flex items-center w-full gap-2">
-            <label class="text-sm text-gray-600">Tipo</label>
-            <select v-model="filters.type" class="w-full p-2 border rounded-lg">
+          <div class="col-span-2 sm:col-span-3">
+            <label class="label">Tipo de orden</label>
+            <select v-model="filters.type" class="input">
               <option value="">Todos</option>
               <option value="mesa">Mesa</option>
               <option value="llevar">Llevar</option>
               <option value="delivery">Delivery</option>
             </select>
           </div>
-        
-          
-        </div>
-        <div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t">
-          <button @click="resetFilters" class="px-3 py-2 text-sm border rounded-lg">Resetear</button>
-          <button @click="fetchData" class="px-4 py-2 text-sm font-medium text-white rounded-lg bg-mantis-500 hover:bg-mantis-600">Aplicar Filtros</button>
+          <div class="flex col-span-2 gap-2 sm:col-span-3">
+            <button @click="resetFilters" type="button" class="btn btn-secondary flex-1">
+              Limpiar
+            </button>
+            <button @click="fetchData" type="button" class="btn btn-primary flex-[1.5]">
+              <i class="pi pi-filter text-xs"></i>
+              <span>Aplicar</span>
+            </button>
+          </div>
         </div>
       </div>
 
-     
-  
-
-      <!-- Main Grid -->
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <!-- Left Column -->
-        <div class="flex flex-col gap-6 lg:col-span-1">
-          <div class="p-6 bg-white border shadow-sm rounded-xl">
-            <div class="text-base text-gray-500">Ingresos Totales (Facturado)</div>
-            <div class="mt-2 text-4xl font-bold text-gray-800">{{ formatCurrency(stats.total_revenue) }}</div>
+      <!-- KPIs -->
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- Ingresos Totales -->
+        <div class="p-4 card sm:p-5">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-semibold tracking-wide text-gray-500 uppercase">Ingresos Totales</span>
+            <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-mantis-50 text-mantis-600">
+              <i class="pi pi-wallet text-sm"></i>
+            </span>
           </div>
-          <div class="p-6 bg-white border shadow-sm cursor-pointer rounded-xl hover:bg-gray-50" @click="showDiscountDetails">
-            <div class="text-base text-gray-500">Total en Descuentos</div>
-            <div class="mt-2 text-4xl font-bold text-orange-500">{{ formatCurrency(stats.total_discounts) }}</div>
-          </div>
-          <div class="p-6 bg-white border shadow-sm cursor-pointer rounded-xl hover:bg-gray-50" @click="showDeliveryFeeDetails">
-            <div class="text-base text-gray-500">Total en Cobros de Delivery</div>
-            <div class="mt-2 text-4xl font-bold text-cyan-500">{{ formatCurrency(stats.total_delivery_fees) }}</div>
-          </div>
-           <div class="p-6 bg-white border shadow-sm rounded-xl">
-            <div class="text-base text-gray-500">Facturas Anuladas</div>
-            <div class="mt-2 text-4xl font-bold text-red-500">{{ formatCurrency(stats.total_cancelled_revenue) }}</div>
-            <div class="mt-1 text-sm text-gray-500">{{ stats.total_cancelled_count }} facturas</div>
-          </div>
-          <div class="p-6 bg-white border shadow-sm rounded-xl">
-            <h3 class="font-semibold text-gray-800">Órdenes Facturadas por Tipo</h3>
-            <ul class="mt-3 space-y-2">
-              <li v-if="stats.invoiced_orders_by_type.length === 0"><p class="text-sm text-gray-400">No hay datos.</p></li>
-              <li v-for="item in stats.invoiced_orders_by_type" :key="item.type" class="flex justify-between text-sm">
-                <span class="capitalize">{{ item.type }}</span>
-                <span class="font-medium text-gray-700">{{ item.count }}</span>
-              </li>
-            </ul>
-          </div>
-          <div class="p-6 bg-white border shadow-sm rounded-xl">
-            <h3 class="font-semibold text-gray-800">Ventas por Categoría</h3>
-            <ul class="mt-3 space-y-2">
-              <li v-if="stats.sales_by_category.length === 0"><p class="text-sm text-gray-400">No hay datos.</p></li>
-              <li v-for="item in stats.sales_by_category" :key="item.name" class="flex justify-between text-sm">
-                <span class="capitalize">{{ item.name }}</span>
-                <span class="font-medium text-gray-700">{{ item.count }}</span>
-              </li>
-            </ul>
+          <div class="mt-2 text-2xl font-extrabold text-gray-900 sm:text-3xl tabular-nums">
+            {{ formatCurrency(stats.total_revenue) }}
           </div>
         </div>
 
-        <!-- Right Column -->
-        <div class="flex flex-col gap-6 lg:col-span-2">
-          <div class="overflow-hidden bg-white border shadow-sm rounded-xl">
-            <div class="p-4 border-b"><h3 class="font-semibold text-gray-800">Productos Facturados</h3></div>
-            <!-- Contenedor con altura máxima y scroll vertical -->
-            <div class="overflow-y-auto max-h-96">
-              <table class="min-w-full text-sm text-left"><thead class="sticky top-0 text-xs text-gray-600 uppercase bg-gray-50"><tr><th class="px-4 py-2">Producto</th><th class="px-4 py-2 text-center">Cantidad Vendida</th></tr></thead><tbody class="divide-y divide-gray-100"><tr v-if="stats.invoiced_products.length === 0"><td colspan="2" class="py-6 text-center text-gray-400">No hay datos.</td></tr><tr v-for="(p, i) in stats.invoiced_products" :key="i"><td class="px-4 py-3 font-medium text-gray-800">{{ p.name }}</td><td class="px-4 py-3 text-center text-gray-600">{{ p.total_quantity }}</td></tr></tbody></table>
+        <!-- Descuentos Aplicados -->
+        <div
+          @click="showDiscountDetails"
+          class="p-4 transition cursor-pointer card sm:p-5 hover:border-amber-300 hover:shadow-md"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-semibold tracking-wide text-gray-500 uppercase">Descuentos</span>
+            <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-amber-50 text-amber-600">
+              <i class="pi pi-percentage text-sm"></i>
+            </span>
+          </div>
+          <div class="mt-2 text-2xl font-extrabold text-amber-600 sm:text-3xl tabular-nums">
+            {{ formatCurrency(stats.total_discounts) }}
+          </div>
+          <p class="mt-1 text-[11px] font-medium text-gray-500">Toca para ver detalle</p>
+        </div>
+
+        <!-- Cobros de Delivery -->
+        <div
+          @click="showDeliveryFeeDetails"
+          class="p-4 transition cursor-pointer card sm:p-5 hover:border-mantis-300 hover:shadow-md"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-semibold tracking-wide text-gray-500 uppercase">Cobros Delivery</span>
+            <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-mantis-50 text-mantis-700">
+              <i class="pi pi-truck text-sm"></i>
+            </span>
+          </div>
+          <div class="mt-2 text-2xl font-extrabold text-mantis-700 sm:text-3xl tabular-nums">
+            {{ formatCurrency(stats.total_delivery_fees) }}
+          </div>
+          <p class="mt-1 text-[11px] font-medium text-gray-500">Toca para ver por rider</p>
+        </div>
+
+        <!-- Facturas Anuladas -->
+        <div class="p-4 card sm:p-5">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-semibold tracking-wide text-gray-500 uppercase">Anuladas</span>
+            <span class="flex items-center justify-center w-8 h-8 text-red-600 rounded-xl bg-red-50">
+              <i class="pi pi-ban text-sm"></i>
+            </span>
+          </div>
+          <div class="mt-2 text-2xl font-extrabold text-red-600 sm:text-3xl tabular-nums">
+            {{ formatCurrency(stats.total_cancelled_revenue) }}
+          </div>
+          <p class="mt-1 text-[11px] font-medium text-gray-500">{{ stats.total_cancelled_count }} facturas</p>
+        </div>
+      </div>
+
+      <!-- Desgloses por tipo y categoría -->
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="p-4 card sm:p-5">
+          <h3 class="text-sm font-bold text-gray-900">Órdenes Facturadas por Tipo</h3>
+          <ul class="mt-3 divide-y divide-gray-100">
+            <li v-if="stats.invoiced_orders_by_type.length === 0" class="py-4 text-sm text-center text-gray-400">
+              No hay datos.
+            </li>
+            <li
+              v-for="item in stats.invoiced_orders_by_type"
+              :key="item.type"
+              class="flex items-center justify-between py-2 text-sm"
+            >
+              <span class="font-medium text-gray-700 capitalize">{{ item.type }}</span>
+              <span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-gray-100 text-gray-800 tabular-nums">
+                {{ item.count }}
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="p-4 card sm:p-5">
+          <h3 class="text-sm font-bold text-gray-900">Ventas por Categoría</h3>
+          <ul class="mt-3 divide-y divide-gray-100">
+            <li v-if="stats.sales_by_category.length === 0" class="py-4 text-sm text-center text-gray-400">
+              No hay datos.
+            </li>
+            <li
+              v-for="item in stats.sales_by_category"
+              :key="item.name"
+              class="flex items-center justify-between py-2 text-sm"
+            >
+              <span class="font-medium text-gray-700 capitalize">{{ item.name }}</span>
+              <span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-mantis-50 text-mantis-800 tabular-nums">
+                {{ item.count }}
+              </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Productos más vendidos y Desempeño de Riders -->
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <!-- Productos vendidos -->
+        <div class="overflow-hidden card">
+          <div class="px-4 py-3.5 border-b border-gray-200 bg-gray-50 sm:px-5">
+            <h3 class="text-sm font-bold text-gray-900">Productos Facturados</h3>
+          </div>
+          <div class="overflow-y-auto max-h-80">
+            <table class="min-w-full text-sm text-left">
+              <thead class="sticky top-0 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200 bg-gray-50">
+                <tr>
+                  <th class="px-4 py-2.5">Producto</th>
+                  <th class="px-4 py-2.5 text-center">Cant.</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr v-if="stats.invoiced_products.length === 0">
+                  <td colspan="2" class="py-8 text-center text-gray-400">No hay datos.</td>
+                </tr>
+                <tr v-for="(p, i) in stats.invoiced_products" :key="i" class="hover:bg-gray-50/70">
+                  <td class="px-4 py-2.5 font-medium text-gray-900">{{ p.name }}</td>
+                  <td class="px-4 py-2.5 font-bold text-center text-mantis-700 tabular-nums">{{ p.total_quantity }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Desempeño de motorizados -->
+        <div class="overflow-hidden card">
+          <div class="px-4 py-3.5 border-b border-gray-200 bg-gray-50 sm:px-5">
+            <h3 class="text-sm font-bold text-gray-900">Desempeño de Motorizados</h3>
+          </div>
+          <div class="overflow-y-auto max-h-80">
+            <table class="min-w-full text-sm text-left">
+              <thead class="sticky top-0 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200 bg-gray-50">
+                <tr>
+                  <th class="px-4 py-2.5">Repartidor</th>
+                  <th class="px-4 py-2.5 text-center">Entregas</th>
+                  <th class="px-4 py-2.5 text-center">Detalle</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr v-if="stats.rider_performance.length === 0">
+                  <td colspan="3" class="py-8 text-center text-gray-400">No hay datos.</td>
+                </tr>
+                <tr v-for="(r, i) in stats.rider_performance" :key="i" class="hover:bg-gray-50/70">
+                  <td class="px-4 py-2.5 font-medium text-gray-900">{{ r.name }}</td>
+                  <td class="px-4 py-2.5 font-bold text-center text-gray-800 tabular-nums">{{ r.delivery_count }}</td>
+                  <td class="px-4 py-2.5 text-center">
+                    <button @click="showRiderDetails(r)" class="btn btn-outline py-1 px-2.5 text-xs">
+                      Ver productos
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ventas por hora -->
+      <div class="p-4 card sm:p-5">
+        <h3 class="text-sm font-bold text-gray-900">Ventas por Hora</h3>
+        <div v-if="stats.sales_by_hour.length === 0" class="py-6 text-sm text-center text-gray-400">
+          No hay datos.
+        </div>
+        <div v-else class="mt-3 space-y-2.5">
+          <div v-for="item in stats.sales_by_hour" :key="item.hour" class="flex items-center gap-3 text-xs sm:text-sm">
+            <span class="w-12 font-semibold text-gray-600 tabular-nums shrink-0">{{ item.hour }}:00</span>
+            <div class="flex-1 h-2.5 overflow-hidden bg-gray-100 rounded-full">
+              <div
+                class="h-full rounded-full bg-mantis-600"
+                :style="{ width: ((item.count / Math.max(1, ...stats.sales_by_hour.map(h => h.count))) * 100) + '%' }"
+              ></div>
+            </div>
+            <span class="w-8 font-bold text-right text-gray-800 tabular-nums shrink-0">{{ item.count }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Detalles del Motorizado -->
+    <div v-if="isModalOpen" class="modal-backdrop">
+      <div class="modal-sheet w-full max-w-lg lg:h-auto lg:max-h-[85vh]">
+        <div class="modal-header shrink-0">
+          <div>
+            <h3 class="modal-title">Productos Entregados</h3>
+            <p v-if="selectedRider" class="text-xs text-gray-500">Repartidor: {{ selectedRider.name }}</p>
+          </div>
+          <button @click="closeModal" class="icon-btn">
+            <i class="pi pi-times text-sm"></i>
+          </button>
+        </div>
+
+        <div class="flex-1 min-h-0 p-4 overflow-y-auto">
+          <div v-if="isLoadingModal" class="py-10 text-center text-sm text-gray-500">Cargando productos...</div>
+          <div v-else-if="riderProducts.length === 0" class="py-10 text-center text-sm text-gray-400">
+            No se encontraron productos.
+          </div>
+          <div v-else class="border border-gray-200 divide-y divide-gray-100 rounded-xl overflow-hidden">
+            <div
+              v-for="product in riderProducts"
+              :key="product.name"
+              class="flex items-center justify-between px-4 py-2.5 text-sm"
+            >
+              <span class="font-medium text-gray-900">{{ product.name }}</span>
+              <span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-mantis-50 text-mantis-800 tabular-nums">
+                {{ product.total_quantity }}
+              </span>
             </div>
           </div>
-          <div class="overflow-hidden bg-white border shadow-sm rounded-xl">
-            <div class="p-4 border-b"><h3 class="font-semibold text-gray-800">Rendimiento de Repartidores</h3></div>
-            <div class="overflow-x-auto">
-              <table class="min-w-full text-sm text-left"><thead class="text-xs text-gray-600 uppercase bg-gray-50"><tr><th class="px-4 py-2">Repartidor</th><th class="px-4 py-2 text-center">Entregas</th><th class="px-4 py-2 text-center">Acciones</th></tr></thead><tbody class="divide-y divide-gray-100"><tr v-if="stats.rider_performance.length === 0"><td colspan="3" class="py-6 text-center text-gray-400">No hay datos.</td></tr><tr v-for="(r, i) in stats.rider_performance" :key="i"><td class="px-4 py-3 font-medium text-gray-800">{{ r.name }}</td><td class="px-4 py-3 text-center text-gray-600">{{ r.delivery_count }}</td><td class="px-4 py-3 text-center"><button @click="showRiderDetails(r)" class="px-2 py-1 text-xs font-medium text-white rounded bg-mantis-500 hover:bg-mantis-600">Ver Productos</button></td></tr></tbody></table>
-            </div>
+        </div>
+
+        <div class="modal-footer justify-end pb-safe shrink-0">
+          <button @click="closeModal" class="btn btn-secondary">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Detalles de Descuentos -->
+    <div v-if="isDiscountModalOpen" class="modal-backdrop">
+      <div class="modal-sheet w-full max-w-3xl lg:h-auto lg:max-h-[85vh]">
+        <div class="modal-header shrink-0">
+          <div>
+            <h3 class="modal-title">Órdenes con Descuento</h3>
+            <p class="text-xs text-gray-500">Desglose de descuentos en el período seleccionado</p>
           </div>
-          <div class="p-6 bg-white border shadow-sm rounded-xl">
-            <h3 class="font-semibold text-gray-800">Ventas por Hora del Día</h3>
-            <div class="mt-3 space-y-1">
-                <div v-if="stats.sales_by_hour.length === 0"><p class="text-sm text-gray-400">No hay datos.</p></div>
-                <div v-for="item in stats.sales_by_hour" :key="item.hour" class="flex items-center gap-3 text-sm">
-                    <span class="w-16 font-medium text-gray-600">{{ item.hour }}:00 - {{ item.hour + 1 }}:00</span>
-                    <div class="flex-1 h-4 bg-gray-100 rounded">
-                        <div class="h-full rounded bg-mantis-400" :style="{ width: (item.count / Math.max(...stats.sales_by_hour.map(h => h.count)) * 100) + '%' }"></div>
-                    </div>
-                    <span class="w-8 font-semibold text-right text-gray-800">{{ item.count }}</span>
+          <button @click="closeDiscountModal" class="icon-btn">
+            <i class="pi pi-times text-sm"></i>
+          </button>
+        </div>
+
+        <div class="flex-1 min-h-0 p-4 overflow-y-auto">
+          <div v-if="isLoadingDiscountModal" class="py-10 text-center text-sm text-gray-500">Cargando órdenes...</div>
+          <div v-else-if="discountedOrders.length === 0" class="py-10 text-center text-sm text-gray-400">
+            No se encontraron órdenes con descuento.
+          </div>
+          <template v-else>
+            <!-- Móvil -->
+            <div class="space-y-2 sm:hidden">
+              <div
+                v-for="order in discountedOrders"
+                :key="`dm-${order.id}`"
+                class="p-3 border border-gray-200 rounded-xl space-y-1"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-bold text-gray-900 text-sm">#{{ order.id }} · <span class="capitalize">{{ order.order_type }}</span></span>
+                  <span class="font-bold text-amber-600 text-sm tabular-nums">-{{ formatCurrency(order.discount_amount) }}</span>
                 </div>
+                <p class="text-xs text-gray-500">{{ new Date(order.created_at).toLocaleString('es-NI') }}</p>
+                <p v-if="order.discount_reason" class="text-xs text-gray-700">Motivo: {{ order.discount_reason }}</p>
+              </div>
+            </div>
+
+            <!-- Desktop -->
+            <div class="hidden overflow-x-auto border border-gray-200 rounded-xl sm:block">
+              <table class="min-w-full text-sm text-left">
+                <thead class="text-xs font-semibold text-gray-600 uppercase border-b border-gray-200 bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-2.5">Orden #</th>
+                    <th class="px-4 py-2.5">Fecha</th>
+                    <th class="px-4 py-2.5">Tipo</th>
+                    <th class="px-4 py-2.5 text-right">Descuento</th>
+                    <th class="px-4 py-2.5">Razón</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr v-for="order in discountedOrders" :key="order.id" class="hover:bg-gray-50">
+                    <td class="px-4 py-2.5 font-semibold text-gray-900">{{ order.id }}</td>
+                    <td class="px-4 py-2.5 text-gray-600">{{ new Date(order.created_at).toLocaleString('es-NI') }}</td>
+                    <td class="px-4 py-2.5 capitalize">{{ order.order_type }}</td>
+                    <td class="px-4 py-2.5 font-bold text-right text-amber-600 tabular-nums">{{ formatCurrency(order.discount_amount) }}</td>
+                    <td class="px-4 py-2.5 text-gray-600">{{ order.discount_reason || '—' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </template>
+        </div>
+
+        <div class="modal-footer justify-end pb-safe shrink-0">
+          <button @click="closeDiscountModal" class="btn btn-secondary">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Detalles de Cobros de Delivery -->
+    <div v-if="isDeliveryFeeModalOpen" class="modal-backdrop">
+      <div class="modal-sheet w-full max-w-lg lg:h-auto lg:max-h-[85vh]">
+        <div class="modal-header shrink-0">
+          <div>
+            <h3 class="modal-title">Cobros Delivery por Rider</h3>
+            <p class="text-xs text-gray-500">Resumen de recaudación en el período seleccionado</p>
+          </div>
+          <button @click="closeDeliveryFeeModal" class="icon-btn">
+            <i class="pi pi-times text-sm"></i>
+          </button>
+        </div>
+
+        <div class="flex-1 min-h-0 p-4 overflow-y-auto">
+          <div v-if="isLoadingDeliveryFeeModal" class="py-10 text-center text-sm text-gray-500">Cargando cobros...</div>
+          <div v-else-if="deliveryFeesByRider.length === 0" class="py-10 text-center text-sm text-gray-400">
+            No se encontraron datos.
+          </div>
+          <div v-else class="border border-gray-200 divide-y divide-gray-100 rounded-xl overflow-hidden">
+            <div
+              v-for="rider in deliveryFeesByRider"
+              :key="rider.id"
+              class="flex items-center justify-between gap-3 px-4 py-3 text-sm"
+            >
+              <div>
+                <p class="font-semibold text-gray-900">{{ rider.name }}</p>
+                <p class="text-xs text-gray-500">{{ rider.delivery_count }} entregas</p>
+              </div>
+              <span class="font-bold text-mantis-700 tabular-nums">
+                {{ formatCurrency(rider.total_delivery_fees) }}
+              </span>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Rider Products Modal -->
-    <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="w-full max-w-lg p-6 bg-white rounded-lg shadow-xl">
-        <div class="flex items-start justify-between">
-          <div>
-            <h3 class="text-lg font-semibold text-gray-800">Productos Entregados</h3>
-            <p v-if="selectedRider" class="text-sm text-gray-600">Repartidor: {{ selectedRider.name }}</p>
-          </div>
-          <button @click="closeModal" class="p-1 text-gray-500 rounded-full hover:bg-gray-100">&times;</button>
-        </div>
-        <div class="mt-4 overflow-y-auto border-t max-h-80">
-          <div v-if="isLoadingModal" class="py-10 text-center text-gray-500">Cargando...</div>
-          <table v-else class="min-w-full text-sm text-left">
-            <thead class="sticky top-0 text-xs text-gray-600 uppercase bg-gray-50">
-              <tr>
-                <th class="px-4 py-2">Producto</th>
-                <th class="px-4 py-2 text-center">Cantidad Total</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-if="riderProducts.length === 0"><td colspan="2" class="py-6 text-center text-gray-400">No se encontraron productos.</td></tr>
-              <tr v-for="product in riderProducts" :key="product.name">
-                <td class="px-4 py-3 font-medium text-gray-800">{{ product.name }}</td>
-                <td class="px-4 py-3 text-center text-gray-600">{{ product.total_quantity }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="pt-4 mt-4 text-right border-t">
-          <button @click="closeModal" class="px-4 py-2 text-sm border rounded-lg">Cerrar</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Discounted Orders Modal -->
-    <div v-if="isDiscountModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="w-full max-w-4xl p-6 bg-white rounded-lg shadow-xl">
-        <div class="flex items-start justify-between">
-          <div>
-            <h3 class="text-lg font-semibold text-gray-800">Órdenes con Descuento</h3>
-            <p class="text-sm text-gray-600">Mostrando órdenes según los filtros aplicados.</p>
-          </div>
-          <button @click="closeDiscountModal" class="p-1 text-gray-500 rounded-full hover:bg-gray-100">&times;</button>
-        </div>
-        <div class="mt-4 overflow-y-auto border-t max-h-[60vh]">
-          <div v-if="isLoadingDiscountModal" class="py-10 text-center text-gray-500">Cargando...</div>
-          <table v-else class="min-w-full text-sm text-left">
-            <thead class="sticky top-0 text-xs text-gray-600 uppercase bg-gray-50">
-              <tr>
-                <th class="px-4 py-2">Orden ID</th>
-                <th class="px-4 py-2">Fecha</th>
-                <th class="px-4 py-2">Tipo</th>
-                <th class="px-4 py-2 text-right">Monto Descuento</th>
-                <th class="px-4 py-2">Razón del Descuento</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-if="discountedOrders.length === 0"><td colspan="5" class="py-6 text-center text-gray-400">No se encontraron órdenes con descuento.</td></tr>
-              <tr v-for="order in discountedOrders" :key="order.id">
-                <td class="px-4 py-3 font-medium text-gray-800">#{{ order.id }}</td>
-                <td class="px-4 py-3 text-gray-600">{{ new Date(order.created_at).toLocaleDateString('es-NI') }}</td>
-                <td class="px-4 py-3 text-gray-600 capitalize">{{ order.order_type }}</td>
-                <td class="px-4 py-3 font-medium text-right text-orange-600">{{ formatCurrency(order.discount_amount) }}</td>
-                <td class="px-4 py-3 text-gray-500">{{ order.discount_reason || 'N/A' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="pt-4 mt-4 text-right border-t">
-          <button @click="closeDiscountModal" class="px-4 py-2 text-sm border rounded-lg">Cerrar</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Delivery Fees by Rider Modal -->
-    <div v-if="isDeliveryFeeModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="w-full max-w-2xl p-6 bg-white rounded-lg shadow-xl">
-        <div class="flex items-start justify-between">
-          <div>
-            <h3 class="text-lg font-semibold text-gray-800">Cobros de Delivery por Repartidor</h3>
-            <p class="text-sm text-gray-600">Mostrando datos según los filtros aplicados.</p>
-          </div>
-          <button @click="closeDeliveryFeeModal" class="p-1 text-gray-500 rounded-full hover:bg-gray-100">&times;</button>
-        </div>
-        <div class="mt-4 overflow-y-auto border-t max-h-[60vh]">
-          <div v-if="isLoadingDeliveryFeeModal" class="py-10 text-center text-gray-500">Cargando...</div>
-          <table v-else class="min-w-full text-sm text-left">
-            <thead class="sticky top-0 text-xs text-gray-600 uppercase bg-gray-50">
-              <tr>
-                <th class="px-4 py-2">Repartidor</th>
-                <th class="px-4 py-2 text-center">Entregas Realizadas</th>
-                <th class="px-4 py-2 text-right">Monto Total Cobrado</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-if="deliveryFeesByRider.length === 0"><td colspan="3" class="py-6 text-center text-gray-400">No se encontraron datos.</td></tr>
-              <tr v-for="rider in deliveryFeesByRider" :key="rider.id">
-                <td class="px-4 py-3 font-medium text-gray-800">{{ rider.name }}</td>
-                <td class="px-4 py-3 text-center text-gray-600">{{ rider.delivery_count }}</td>
-                <td class="px-4 py-3 font-medium text-right text-cyan-600">{{ formatCurrency(rider.total_delivery_fees) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="pt-4 mt-4 text-right border-t">
-          <button @click="closeDeliveryFeeModal" class="px-4 py-2 text-sm border rounded-lg">Cerrar</button>
+        <div class="modal-footer justify-end pb-safe shrink-0">
+          <button @click="closeDeliveryFeeModal" class="btn btn-secondary">Cerrar</button>
         </div>
       </div>
     </div>

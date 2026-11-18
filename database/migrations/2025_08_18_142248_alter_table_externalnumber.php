@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->dropColumn('external_number')->nullable()->after('total');
+            $table->dropColumn('external_number');
         });
     }
 };

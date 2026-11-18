@@ -1,231 +1,248 @@
 <template>
-  <AppLayout title="Clientes">
-    <!-- Header -->
+  <AppLayout title="Clientes Delivery">
     <template #header>
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-lg font-semibold text-gray-900">Clientes</h2>
-          <p class="mt-0.5 text-sm text-gray-500">Gestiona tus clientes, direcciones y datos fiscales</p>
-        </div>
-        <NavDelivery />
-      </div>
+      <NavDelivery />
     </template>
 
-    <!-- Top controls -->
-    <div class="px-4 mx-auto mt-6 max-w-7xl sm:px-6 lg:px-8">
-      <div class="flex flex-col gap-3 p-4 bg-white border border-gray-100 shadow-sm rounded-xl sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex items-center w-full gap-3 px-3 py-2 border border-gray-100 rounded-lg sm:max-w-xl bg-gray-50">
-          <svg xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0 w-5 h-5 text-mantis-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
-          </svg>
-          <input
-            v-model="search"
-            @input="onSearchInput"
-            type="search"
-            placeholder="Buscar por nombre, RUC o teléfono..."
-            class="w-full text-sm text-gray-700 placeholder-gray-400 bg-transparent outline-none"
-            aria-label="Buscar clientes"
-          />
-          <button v-if="search" @click="resetFilters" class="px-2 py-1 text-xs text-gray-500 rounded hover:bg-gray-100">Limpiar</button>
+    <div class="p-3 mx-auto space-y-4 max-w-7xl sm:p-6">
+      <!-- Encabezado y filtros -->
+      <div class="p-3.5 space-y-3 card sm:p-5">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 class="text-xl font-bold text-gray-900 sm:text-2xl">Clientes Delivery</h1>
+            <p class="text-xs text-gray-500">
+              Total registrados: <strong class="text-gray-800">{{ customers.total ?? 0 }}</strong>
+            </p>
+          </div>
+          <button @click="openCreateModal" class="btn btn-primary w-full sm:w-auto">
+            <i class="pi pi-plus text-xs"></i>
+            <span>Nuevo Cliente</span>
+          </button>
         </div>
 
-        <div class="flex items-center gap-3">
-          <div class="relative">
-            <select v-model="filterBy" class="py-2 pl-3 pr-8 text-sm bg-white border border-gray-200 rounded-lg appearance-none w-44">
+        <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+          <div class="relative flex-1">
+            <i class="pi pi-search text-xs text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+            <input
+              v-model="search"
+              @input="onSearchInput"
+              type="text"
+              placeholder="Buscar por nombre, teléfono, RUC..."
+              class="pl-9 input"
+            >
+          </div>
+          <div class="flex gap-2">
+            <select v-model="filterBy" @change="applyFilters" class="input sm:w-44">
               <option value="any">Cualquier campo</option>
               <option value="name">Nombre</option>
               <option value="fiscal_ruc">RUC</option>
               <option value="phone">Teléfono</option>
             </select>
-            <svg class="absolute w-4 h-4 text-gray-400 -translate-y-1/2 pointer-events-none right-2 top-1/2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
+            <button
+              v-if="search || filterBy !== 'any'"
+              @click="resetFilters"
+              type="button"
+              class="btn btn-secondary shrink-0"
+              title="Limpiar"
+            >
+              <i class="pi pi-filter-slash text-xs"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista Móvil: Tarjetas -->
+      <div class="space-y-2.5 md:hidden">
+        <div v-if="customers.data.length === 0" class="p-8 text-center text-sm text-gray-500 card">
+          No hay clientes registrados.
+        </div>
+
+        <div
+          v-for="customer in customers.data"
+          :key="`m-${customer.id}`"
+          class="p-3.5 card space-y-2.5"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <p class="font-bold text-gray-900 truncate">{{ customer.name }}</p>
+              <p class="text-xs text-gray-500 mt-0.5 tabular-nums">
+                <i class="pi pi-phone text-[10px] mr-1"></i>{{ customer.phone || 'Sin teléfono' }}
+              </p>
+            </div>
+            <span
+              v-if="customer.fiscal_ruc"
+              class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-mantis-100 text-mantis-800 shrink-0 tabular-nums"
+            >
+              RUC: {{ customer.fiscal_ruc }}
+            </span>
           </div>
 
-          <button @click="applyFilters" class="px-4 py-2 text-sm font-medium text-white rounded-lg shadow bg-gradient-to-r from-mantis-400 to-mantis-500 hover:from-mantis-500 hover:to-mantis-600">
-            Aplicar
-          </button>
+          <div v-if="customer.fiscal_name" class="text-xs text-gray-600">
+            <span class="text-gray-400">Fiscal:</span> {{ customer.fiscal_name }}
+          </div>
 
-          <button @click="openCreateModal" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg shadow bg-mantis-500 hover:bg-mantis-600">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Crear cliente
-          </button>
+          <div v-if="customer.addresses && customer.addresses.length" class="space-y-1 pt-1">
+            <p
+              v-for="(addr, idx) in customer.addresses"
+              :key="addr.id || idx"
+              class="text-xs text-gray-700 bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-100"
+            >
+              <i class="pi pi-map-marker text-[10px] text-gray-400 mr-1"></i>{{ addr.address }}
+            </p>
+          </div>
+
+          <div class="flex gap-2 pt-2 border-t border-gray-100">
+            <button @click="openEditModal(customer)" class="btn btn-outline flex-1 py-2 text-xs">
+              <i class="pi pi-pencil text-xs"></i>
+              <span>Editar</span>
+            </button>
+            <button @click="deleteCustomer(customer)" class="btn btn-danger py-2 px-3 text-xs">
+              <i class="pi pi-trash text-xs"></i>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div class="flex items-center justify-between mt-2 text-xs text-gray-500">
-        <div>
-          <span class="font-medium text-gray-700">{{ customers.total ?? 0 }}</span>
-          <span>clientes</span>
-          <span v-if="filters && (filters.search || filters.filter)" class="ml-2 px-2 py-0.5 bg-gray-100 rounded text-gray-600">Filtros activos</span>
-        </div>
-        <div class="hidden text-xs text-right text-gray-400 sm:block">Consejo: usa RUC para búsquedas exactas</div>
-      </div>
-    </div>
-
-    <!-- Table -->
-    <div class="px-4 mx-auto mt-6 max-w-7xl sm:px-6 lg:px-8">
-      <div class="overflow-hidden bg-white border border-gray-100 shadow-xl rounded-xl">
-        <div class="p-4 border-b bg-gradient-to-r from-mantis-400 to-mantis-500">
-          <h3 class="text-lg font-semibold text-white">Lista de clientes</h3>
-          <p class="mt-1 text-sm text-white/90">Visualiza y administra la información</p>
-        </div>
-
-        <div class="relative overflow-x-auto">
-          <table class="min-w-full text-sm text-left text-gray-700">
-            <thead class="text-xs font-semibold text-gray-700 uppercase bg-gray-50">
+      <!-- Vista Desktop: Tabla -->
+      <div class="hidden overflow-hidden card md:block">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm text-gray-700">
+            <thead class="text-xs font-semibold tracking-wide text-gray-600 uppercase border-b border-gray-200 bg-gray-50">
               <tr>
-                <th class="px-6 py-3">Nombre</th>
-                <th class="px-6 py-3">Teléfono</th>
-                <th class="px-6 py-3">Nombre fiscal</th>
-                <th class="px-6 py-3">RUC</th>
-                <th class="px-6 py-3">Direcciones</th>
-                <th class="px-6 py-3 text-right">Acciones</th>
+                <th class="px-5 py-3.5 text-left">Cliente</th>
+                <th class="px-5 py-3.5 text-left">Teléfono</th>
+                <th class="px-5 py-3.5 text-left">Datos fiscales</th>
+                <th class="px-5 py-3.5 text-left">Direcciones</th>
+                <th class="px-5 py-3.5 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-              <tr v-for="customer in customers.data" :key="customer.id" class="hover:bg-gray-50">
-                <td class="px-6 py-4">
-                  <div class="flex items-center gap-3">
-                    <div class="flex items-center justify-center w-10 h-10 font-semibold rounded-full bg-mantis-100 text-mantis-800">
-                      {{ (customer.name || '').charAt(0).toUpperCase() }}
-                    </div>
-                    <div class="truncate">
-                      <div class="font-medium text-gray-900 truncate">{{ customer.name }}</div>
-                      <div class="text-xs text-gray-400 truncate">{{ customer.email || '' }}</div>
-                    </div>
+              <tr v-for="customer in customers.data" :key="customer.id" class="transition hover:bg-gray-50/70">
+                <td class="px-5 py-3.5 font-semibold text-gray-900">{{ customer.name }}</td>
+                <td class="px-5 py-3.5 text-gray-600 tabular-nums whitespace-nowrap">{{ customer.phone || '—' }}</td>
+                <td class="px-5 py-3.5">
+                  <div class="space-y-1">
+                    <p class="text-xs text-gray-700">{{ customer.fiscal_name || '—' }}</p>
+                    <span
+                      v-if="customer.fiscal_ruc"
+                      class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-full bg-mantis-100 text-mantis-800 tabular-nums"
+                    >
+                      {{ customer.fiscal_ruc }}
+                    </span>
                   </div>
                 </td>
-
-                <td class="px-6 py-4 text-gray-600">
-                  {{ customer.phone || 'N/A' }}
+                <td class="px-5 py-3.5 max-w-xs">
+                  <div v-if="customer.addresses && customer.addresses.length" class="space-y-1">
+                    <p
+                      v-for="(addr, idx) in customer.addresses"
+                      :key="addr.id || idx"
+                      class="text-xs text-gray-600 truncate"
+                      :title="addr.address"
+                    >
+                      · {{ addr.address }}
+                    </p>
+                  </div>
+                  <span v-else class="text-xs text-gray-400">Sin direcciones</span>
                 </td>
-
-                <td class="px-6 py-4">
-                  <div class="text-gray-900">{{ customer.fiscal_name }}</div>
-                </td>
-
-                <td class="px-6 py-4">
-                  <span class="inline-flex px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                    {{ customer.fiscal_ruc }}
-                  </span>
-                </td>
-
-                <td class="px-6 py-4">
-                  <ul class="max-w-md space-y-1">
-                    <li v-for="addr in customer.addresses" :key="addr.id" class="flex items-start gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mt-0.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <span class="text-sm text-gray-600 truncate">{{ addr.address }}</span>
-                    </li>
-                  </ul>
-                </td>
-
-                <td class="px-6 py-4 text-right">
-                  <div class="inline-flex items-center gap-2">
-                    <button @click="openEditModal(customer)" class="p-2 text-blue-600 rounded hover:bg-blue-50" title="Editar">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center justify-center gap-2">
+                    <button @click="openEditModal(customer)" class="btn btn-outline py-1.5 px-3 text-xs">
+                      <i class="pi pi-pencil text-xs"></i>
+                      <span>Editar</span>
                     </button>
-                    <button @click="deleteCustomer(customer)" class="p-2 text-red-600 rounded hover:bg-red-50" title="Eliminar">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6" />
-                      </svg>
+                    <button @click="deleteCustomer(customer)" class="btn btn-danger py-1.5 px-3 text-xs" title="Eliminar">
+                      <i class="pi pi-trash text-xs"></i>
                     </button>
                   </div>
                 </td>
               </tr>
-
               <tr v-if="customers.data.length === 0">
-                <td colspan="6" class="px-6 py-8 text-center">
-                  <div class="flex flex-col items-center justify-center text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <p class="text-lg font-medium">No hay clientes registrados</p>
-                    <p class="mt-1 text-sm">Agrega tu primer cliente para comenzar</p>
-                  </div>
-                </td>
+                <td colspan="5" class="px-6 py-10 text-center text-gray-500">No hay clientes registrados.</td>
               </tr>
             </tbody>
           </table>
         </div>
-
-        <Pagination class="px-4 py-3 border-t border-gray-200 bg-gray-50" :links="customers.links" />
       </div>
+
+      <Pagination :links="customers.links" />
     </div>
 
-    <!-- Modal -->
-    <transition name="modal">
-      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="showModal = false">
-        <div class="w-full max-w-2xl overflow-hidden bg-white shadow-2xl rounded-xl">
-          <div class="px-6 py-4 text-white bg-gradient-to-r from-mantis-500 to-mantis-600">
-            <div class="flex items-center justify-between">
-              <h3 class="text-lg font-semibold">{{ isEditing ? 'Editar cliente' : 'Crear cliente' }}</h3>
-              <button @click="showModal = false" class="p-1 rounded hover:bg-white/20">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <p class="mt-1 text-sm text-white/90">Completa los datos del cliente</p>
-          </div>
+    <!-- Modal Crear / Editar Cliente -->
+    <div v-if="showModal" class="modal-backdrop">
+      <div class="modal-sheet w-full max-w-xl lg:h-auto lg:max-h-[90vh]">
+        <div class="modal-header shrink-0">
+          <h3 class="modal-title">{{ isEditing ? 'Editar Cliente' : 'Nuevo Cliente' }}</h3>
+          <button @click="showModal = false" type="button" class="icon-btn">
+            <i class="pi pi-times text-sm"></i>
+          </button>
+        </div>
 
-          <form @submit.prevent="submit" class="max-h-[65vh] overflow-y-auto px-6 py-5 space-y-5">
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <form @submit.prevent="submit" class="flex flex-col flex-1 min-h-0">
+          <div class="flex-1 min-h-0 p-4 space-y-4 overflow-y-auto sm:p-5">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label class="block mb-1 text-sm font-medium text-gray-700">Nombre <span class="text-red-500">*</span></label>
-                <input v-model="form.name" type="text" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mantis-500" />
+                <label class="label">Nombre <span class="text-red-500">*</span></label>
+                <input v-model="form.name" type="text" required class="input" placeholder="Nombre del cliente">
               </div>
               <div>
-                <label class="block mb-1 text-sm font-medium text-gray-700">Teléfono <span class="text-red-500">*</span></label>
-                <input v-model="form.phone" type="text" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mantis-500" />
+                <label class="label">Teléfono <span class="text-red-500">*</span></label>
+                <input v-model="form.phone" type="text" inputmode="tel" required class="input" placeholder="8888-8888">
               </div>
               <div>
-                <label class="block mb-1 text-sm font-medium text-gray-700">Nombre fiscal</label>
-                <input v-model="form.fiscal_name" type="text"  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mantis-500" />
+                <label class="label">Nombre fiscal</label>
+                <input v-model="form.fiscal_name" type="text" class="input" placeholder="Opcional">
               </div>
               <div>
-                <label class="block mb-1 text-sm font-medium text-gray-700">RUC</label>
-                <input v-model="form.fiscal_ruc" type="text"  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mantis-500" />
+                <label class="label">RUC</label>
+                <input v-model="form.fiscal_ruc" type="text" class="input" placeholder="Opcional">
               </div>
             </div>
 
             <div>
-              <label class="block mb-2 text-sm font-medium text-gray-700">Direcciones <span class="text-red-500">*</span></label>
-              <div class="space-y-3">
-                <div v-for="(addr, index) in form.addresses" :key="index" class="flex items-start gap-3">
-                  <input v-model="form.addresses[index]" required type="text" placeholder="Ej: Av. Principal #123" class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mantis-500" />
-                  <button v-if="form.addresses.length > 1" type="button" @click="removeAddress(index)" class="p-2 text-red-600 rounded hover:bg-red-50">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6" />
-                    </svg>
-                  </button>
-                </div>
-                <button type="button" @click="addAddress" class="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-mantis-50 text-mantis-700 hover:bg-mantis-100">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Agregar dirección
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="label mb-0">Direcciones <span class="text-red-500">*</span></label>
+                <button
+                  type="button"
+                  @click="addAddress"
+                  class="text-xs font-semibold text-mantis-700 hover:text-mantis-800 flex items-center gap-1"
+                >
+                  <i class="pi pi-plus text-[10px]"></i>
+                  <span>Agregar</span>
                 </button>
               </div>
+              <div class="space-y-2">
+                <div v-for="(addr, index) in form.addresses" :key="index" class="flex items-center gap-2">
+                  <input
+                    v-model="form.addresses[index]"
+                    required
+                    type="text"
+                    placeholder="Ej: Residencial..., casa #12"
+                    class="flex-1 input"
+                  >
+                  <button
+                    v-if="form.addresses.length > 1"
+                    type="button"
+                    @click="removeAddress(index)"
+                    class="icon-btn bg-red-50 text-red-600 hover:bg-red-100 shrink-0"
+                    title="Quitar dirección"
+                  >
+                    <i class="pi pi-trash text-xs"></i>
+                  </button>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <div class="flex items-center justify-end gap-3 pt-4">
-              <button type="button" @click="showModal = false" class="px-4 py-2 text-sm border rounded-lg">Cancelar</button>
-              <button type="submit" class="px-4 py-2 text-sm font-medium text-white rounded-lg shadow bg-mantis-500 hover:bg-mantis-600">
-                Guardar
-              </button>
-            </div>
-          </form>
-        </div>
+          <div class="modal-footer justify-end gap-2 pb-safe shrink-0">
+            <button type="button" @click="showModal = false" class="btn btn-secondary">Cancelar</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="pi pi-check text-xs"></i>
+              <span>{{ isEditing ? 'Actualizar' : 'Guardar' }}</span>
+            </button>
+          </div>
+        </form>
       </div>
-    </transition>
+    </div>
   </AppLayout>
 </template>
 

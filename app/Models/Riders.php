@@ -8,9 +8,8 @@ class Riders extends Model
 {
     protected $fillable = ['name', 'status'];
 
-
     public function orders()
     {
-        return $this->hasMany(Order::class);
+        return $this->hasMany(Order::class, 'assigned_to');
     }
 }

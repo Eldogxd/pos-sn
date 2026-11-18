@@ -2,27 +2,27 @@
 
 namespace App\Http\Controllers;
 
-
-use App\Models\Order;
 use App\Models\Invoice;
-use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
-use App\Models\PartialInvoice;
-use Illuminate\Support\Facades\View;
-use Illuminate\Support\Facades\Log;
-use App\Models\Table;
-use App\Models\Product;
+use App\Models\Order;
 use App\Models\OrderItem;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Table;
+use App\Services\OrderCalculationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class InvoiceController extends Controller
 {
+    public function __construct(
+        protected OrderCalculationService $calculationService
+    ) {}
+
     public function index(Request $request)
     {
-        // Cargamos la factura con su orden, y dentro de la orden, sus items y el producto de cada item.
-         $query = Invoice::with(['order.orderItems.product','order']);
+        // Cargamos la factura con sus ítems propios y con su orden + ítems de la orden como respaldo
+        $query = Invoice::with(['order.orderItems.product', 'orderItems.product']);
 
         // filtros comunes
         if ($request->filled('date_from')) {
@@ -61,8 +61,8 @@ class InvoiceController extends Controller
         $sortDir = $request->input('sort_dir', 'desc');
 
         // prevenir sort por columnas no seguras
-        $allowedSort = ['created_at','total','subtotal','invoice_number'];
-        if (!in_array($sortBy, $allowedSort)) {
+        $allowedSort = ['created_at', 'total', 'subtotal', 'invoice_number'];
+        if (!in_array($sortBy, $allowedSort, true)) {
             $sortBy = 'created_at';
         }
         $sortDir = $sortDir === 'asc' ? 'asc' : 'desc';
@@ -73,351 +73,361 @@ class InvoiceController extends Controller
 
         return Inertia::render('Cashier/Invoices/Index', [
             'invoices' => $invoices,
-            'filters' => $request->only(['search','date_from','date_to','min_total','max_total','order_type','status','sort_by','sort_dir']),
+            'filters' => $request->only(['search', 'date_from', 'date_to', 'min_total', 'max_total', 'order_type', 'status', 'sort_by', 'sort_dir']),
         ]);
     }
-    public function store(Request $request)
-{
-    $request->validate([
-        'invoice_number' => 'required|string|unique:invoices,invoice_number',
-        'order_id' => 'required|exists:orders,id',
-        'fiscal_name' => 'nullable|string|max:255',
-        'fiscal_ruc' => 'nullable|string|max:30',
-        'subtotal' => 'required|numeric',
-        'discount_type' => 'nullable|string|in:amount,percent',
-        'discount_value' => 'nullable|numeric|min:0',
-        'discount_reason' => 'nullable|string|max:255',
-        'total' => 'required|numeric',
-        'items' => 'required|array',
 
-    ]);
-
-    DB::beginTransaction();
-    try{
-        $invoice = Invoice::create($request->only([
-            'invoice_number',
-            'order_id',
-            'fiscal_name',
-            'fiscal_ruc',
-            'subtotal',
-            'discount_type',
-            'discount_value',
-            'discount_reason',
-            'total'
-        ]));
-
-        foreach ($request->items as $itemsData){
-            $orderItem = OrderItem::findOrFail($itemsData['order_item_id']);
-            $amountPaid = intval($itemsData['pay_quantity']);
-
-            if ($amountPaid <= 0 || $amountPaid > $orderItem->quantity) {
-                continue; 
+    /**
+     * Resuelve de forma atómica el número de factura dentro de una transacción activa.
+     * Si el número enviado por el cliente está vacío o ya fue utilizado, genera el siguiente correlativo.
+     */
+    protected function resolveUniqueInvoiceNumber(?string $requestedNumber): string
+    {
+        $trimmed = trim((string) $requestedNumber);
+        if ($trimmed !== '') {
+            $exists = Invoice::where('invoice_number', $trimmed)->lockForUpdate()->exists();
+            if (!$exists) {
+                return $trimmed;
             }
-
-            if ($amountPaid === $orderItem->quantity){
-                
-                $orderItem->payment_status = 'paid';
-                $orderItem->invoice_id = $invoice->id;
-                $orderItem->save();
-            } else {
-                $pending = $orderItem->quantity - $amountPaid;
-
-                $orderItem->quantity = $pending;
-                $orderItem->save();
-
-
-                orderItem::create([
-                    'order_id' => $orderItem->order_id,
-                    'product_id' => $orderItem->product_id,
-                    'quantity' => $amountPaid,
-                    'price' => $orderItem->price,
-                    'payment_status' => 'paid',
-                    'invoice_id' => $invoice->id, 
-                ]);
-            }
-                
         }
 
-        $order = Order::findOrFail($request->order_id);
-        $remainingItems = OrderItem::where('order_id', $order->id)
-            ->where('payment_status', 'pending')
-            ->exists();
+        return Invoice::generateInvoiceNumber();
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'invoice_number' => 'nullable|string|max:50',
+            'order_id' => 'required|exists:orders,id',
+            'fiscal_name' => 'nullable|string|max:255',
+            'fiscal_ruc' => 'nullable|string|max:30',
+            'subtotal' => 'nullable|numeric|min:0',
+            'discount_type' => 'nullable|string|in:amount,percent',
+            'discount_value' => 'nullable|numeric|min:0',
+            'discount_reason' => 'nullable|string|max:255',
+            'total' => 'nullable|numeric|min:0',
+            'items' => 'required|array|min:1',
+            'items.*.order_item_id' => 'required|integer',
+            'items.*.pay_quantity' => 'required|integer|min:1',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $order = Order::lockForUpdate()->findOrFail($request->input('order_id'));
+
+            $resolvedLines = [];
+            $subtotal = 0.0;
+
+            foreach ($request->input('items', []) as $itemsData) {
+                $orderItem = OrderItem::where('order_id', $order->id)
+                    ->where('payment_status', 'pending')
+                    ->lockForUpdate()
+                    ->findOrFail($itemsData['order_item_id']);
+
+                $amountPaid = (int) ($itemsData['pay_quantity'] ?? 0);
+                if ($amountPaid <= 0 || $amountPaid > (int) $orderItem->quantity) {
+                    throw ValidationException::withMessages([
+                        'items' => 'La cantidad a pagar no es válida o excede la cantidad pendiente.',
+                    ]);
+                }
+
+                $subtotal += (float) $orderItem->price * $amountPaid;
+                $resolvedLines[] = [
+                    'orderItem' => $orderItem,
+                    'amountPaid' => $amountPaid,
+                ];
+            }
+
+            $subtotal = round($subtotal, 2);
+            if ($subtotal <= 0 || empty($resolvedLines)) {
+                throw ValidationException::withMessages([
+                    'items' => 'Debe seleccionar al menos un ítem válido para facturar.',
+                ]);
+            }
+
+            $invoiceNumber = $this->resolveUniqueInvoiceNumber($request->input('invoice_number'));
+            $discountAmount = $this->calculationService->calculateDiscount(
+                $subtotal,
+                $request->input('discount_type'),
+                $request->input('discount_value')
+            );
+            $total = max(0.0, round($subtotal - $discountAmount, 2));
+
+            $invoice = Invoice::create([
+                'invoice_number' => $invoiceNumber,
+                'order_id' => $order->id,
+                'fiscal_name' => $request->input('fiscal_name'),
+                'fiscal_ruc' => $request->input('fiscal_ruc'),
+                'subtotal' => $subtotal,
+                'discount_type' => $request->input('discount_type'),
+                'discount_value' => $request->input('discount_value'),
+                'discount_reason' => $request->input('discount_reason'),
+                'discount_amount' => $discountAmount,
+                'total' => $total,
+            ]);
+
+            foreach ($resolvedLines as $line) {
+                /** @var OrderItem $orderItem */
+                $orderItem = $line['orderItem'];
+                $amountPaid = $line['amountPaid'];
+
+                if ($amountPaid === (int) $orderItem->quantity) {
+                    $orderItem->payment_status = 'paid';
+                    $orderItem->invoice_id = $invoice->id;
+                    $orderItem->save();
+                } else {
+                    $orderItem->quantity = (int) $orderItem->quantity - $amountPaid;
+                    $orderItem->save();
+
+                    OrderItem::create([
+                        'order_id' => $orderItem->order_id,
+                        'product_id' => $orderItem->product_id,
+                        'quantity' => $amountPaid,
+                        'price' => $orderItem->price,
+                        'payment_status' => 'paid',
+                        'invoice_id' => $invoice->id,
+                    ]);
+                }
+            }
+
+            $remainingItems = OrderItem::where('order_id', $order->id)
+                ->where('payment_status', 'pending')
+                ->exists();
 
             if (!$remainingItems) {
                 $order->status = 'cerrada';
                 $order->save();
 
-
-                $table = Table::findOrFail($order->table_id);
-                if ($table) {
-                    $table->status = 'libre';
-                    $table->save();
+                if ($order->table_id) {
+                    Table::where('id', $order->table_id)->update(['status' => 'libre']);
                 }
+            }
 
-            } 
+            DB::commit();
 
-    DB::commit();
-    
-    return response()->json(['success' => true, 'invoice_id' => $invoice->id]);
-} catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error al generar factura:', ['error' => $e->getMessage()]);
-        return response()->json(['error' => 'Hubo un problema al generar la factura.'], 500);
+            return response()->json([
+                'success' => true,
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'subtotal' => $invoice->subtotal,
+                'discount_amount' => $invoice->discount_amount,
+                'total' => $invoice->total,
+            ]);
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            throw $e;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al generar factura:', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Hubo un problema al generar la factura.'], 500);
+        }
     }
 
-
-
-    
-}
-
-
-public function storeFinal(Request $request)
-{
-   // Validación de los datos de la factura
-   $request->validate([
-    'invoice_number' => 'required|string|unique:invoices,invoice_number',
-    'order_id' => 'required|exists:orders,id',
-    'fiscal_name' => 'nullable|string|max:255',
-    'fiscal_ruc' => 'nullable|string|max:30',
-    'subtotal' => 'required|numeric',
-    'discount_type' => 'nullable|string|in:amount,percent',
-    'discount_value' => 'nullable|numeric|min:0',
-    'discount_reason' => 'nullable|string|max:255',
-    'total' => 'required|numeric',
-]);
-
-DB::beginTransaction();
-
-try {
-    // Crear la factura
-    $invoice = Invoice::create($request->all());
-
-    // Obtener la orden y actualizar su estado
-    $order = Order::findOrFail($request->input('order_id'));
-    $order->status = 'cerrada';
-    $order->save();
-
-    // Liberar la mesa
-    $table = Table::findOrFail($order->table_id);
-    $table->status = 'libre';
-    $table->save();
-
-    DB::commit();
-
-    return response()->json(['success' => true, 'invoice' => $invoice]);
-
-} catch (\Exception $e) {
-    DB::rollBack();
-    Log::error('Error al generar factura:', ['error' => $e->getMessage()]);
-    return response()->json(['error' => 'Hubo un problema al generar la factura.'], 500);
-}
-
-
-}
-
-public function takeAwayInvoice(Request $request)
-{
-    
-
-    $request->validate([
-        'invoice_number' => 'required|string|unique:invoices,invoice_number',
-        'order_id' => 'required|exists:orders,id',
-        'fiscal_name' => 'nullable|string|max:255',
-        'fiscal_ruc' => 'nullable|string|max:30',
-        'subtotal' => 'required|numeric|min:0',
-        'discount_type' => 'nullable|in:amount,percent',
-        'discount_value' => 'nullable|numeric|min:0',
-        'discount_reason' => 'nullable|string|max:255',
-        'discount_amount' => 'required|numeric|min:0',
-        'total' => 'required|numeric|min:0',
-        
-    ]);
-
-    DB::beginTransaction();
-
-    try {
-        // Crear la factura, solo con referencia a la orden
-        $invoice = Invoice::create([
-            'invoice_number' => $request->invoice_number,
-            'order_id' => $request->order_id,
-            'fiscal_name' => $request->fiscal_name,
-            'fiscal_ruc' => $request->fiscal_ruc,
-            'subtotal' => $request->subtotal,
-            'discount_type' => $request->discount_type,
-            'discount_value' => $request->discount_value,
-            'discount_reason' => $request->discount_reason,
-            'discount_amount' => $request->discount_amount,
-            'total' => $request->total,
-            
-        ]);
-
-      
-
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'invoice' => $invoice,
-            'invoice_number' => $invoice->invoice_number
-        ]);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error al generar factura takeaway:', [
-            'error' => $e->getMessage(),
-            'request' => $request->all()
-        ]);
-
-        return response()->json([
-            'error' => 'Error interno del servidor.'
-        ], 500);
-    }
-}
-
-public function pedidosYaInvoice(Request $request)
-{
-    $request->validate([
-        'invoice_number' => 'required|string|unique:invoices,invoice_number',
-        'order_id' => 'required|exists:orders,id',
-        'fiscal_name' => 'nullable|string|max:255',
-        'fiscal_ruc' => 'nullable|string|max:30',
-        'subtotal' => 'required|numeric|min:0',
-        'discount_type' => 'nullable|in:amount,percent',
-        'discount_value' => 'nullable|numeric|min:0',
-        'discount_reason' => 'nullable|string|max:255',
-        'discount_amount' => 'required|numeric|min:0',
-        'total' => 'required|numeric|min:0',
-    ]);
-
-    DB::beginTransaction();
-
-    try {
-        // Crear la factura, solo con referencia a la orden
-        $invoice = Invoice::create([
-            'invoice_number' => $request->invoice_number,
-            'order_id' => $request->order_id,
-            'fiscal_name' => $request->fiscal_name,
-            'fiscal_ruc' => $request->fiscal_ruc,
-            'subtotal' => $request->subtotal,
-            'discount_type' => $request->discount_type,
-            'discount_value' => $request->discount_value,
-            'discount_reason' => $request->discount_reason,
-            'discount_amount' => $request->discount_amount,
-            'total' => $request->total,
-        ]);
-
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'invoice' => $invoice,
-            'invoice_number' => $invoice->invoice_number
-        ]);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error al generar factura pedidos ya:', [
-            'error' => $e->getMessage(),
-            'request' => $request->all()
-        ]);
-
-        return response()->json([
-            'error' => 'Error interno del servidor.'
-        ], 500);
-    }
-}
-
-    public function deliveryInvoice(Request $request)
+    public function storeFinal(Request $request)
     {
         $request->validate([
-            'invoice_number' => 'required|string|unique:invoices,invoice_number',
+            'invoice_number' => 'nullable|string|max:50',
             'order_id' => 'required|exists:orders,id',
             'fiscal_name' => 'nullable|string|max:255',
             'fiscal_ruc' => 'nullable|string|max:30',
-            'subtotal' => 'required|numeric|min:0',
-            'discount_type' => 'nullable|in:amount,percent',
+            'subtotal' => 'nullable|numeric|min:0',
+            'discount_type' => 'nullable|string|in:amount,percent',
             'discount_value' => 'nullable|numeric|min:0',
             'discount_reason' => 'nullable|string|max:255',
-            'total' => 'required|numeric|min:0',
+            'total' => 'nullable|numeric|min:0',
         ]);
 
         DB::beginTransaction();
 
         try {
-            // Crear la factura, solo con referencia a la orden
+            $order = Order::lockForUpdate()->findOrFail($request->input('order_id'));
+
+            $pendingItems = OrderItem::where('order_id', $order->id)
+                ->where('payment_status', 'pending')
+                ->lockForUpdate()
+                ->get();
+
+            if ($pendingItems->isEmpty()) {
+                DB::rollBack();
+                return response()->json([
+                    'error' => 'No hay ítems pendientes para facturar en esta orden.',
+                ], 422);
+            }
+
+            $subtotal = round((float) $pendingItems->sum(function (OrderItem $item) {
+                return (float) $item->price * (int) $item->quantity;
+            }), 2);
+
+            $invoiceNumber = $this->resolveUniqueInvoiceNumber($request->input('invoice_number'));
+            $discountAmount = $this->calculationService->calculateDiscount(
+                $subtotal,
+                $request->input('discount_type'),
+                $request->input('discount_value')
+            );
+            $total = max(0.0, round($subtotal - $discountAmount, 2));
+
             $invoice = Invoice::create([
-                'invoice_number' => $request->invoice_number,
-                'order_id' => $request->order_id,
-                'fiscal_name' => $request->fiscal_name,
-                'fiscal_ruc' => $request->fiscal_ruc,
-                'subtotal' => $request->subtotal,
-                'discount_type' => $request->discount_type,
-                'discount_value' => $request->discount_value,
-                'discount_reason' => $request->discount_reason,
-                'discount_amount' => $request->discount_amount,
-                'total' => $request->total,
+                'invoice_number' => $invoiceNumber,
+                'order_id' => $order->id,
+                'fiscal_name' => $request->input('fiscal_name'),
+                'fiscal_ruc' => $request->input('fiscal_ruc'),
+                'subtotal' => $subtotal,
+                'discount_type' => $request->input('discount_type'),
+                'discount_value' => $request->input('discount_value'),
+                'discount_reason' => $request->input('discount_reason'),
+                'discount_amount' => $discountAmount,
+                'total' => $total,
             ]);
+
+            // Marcar todos los ítems pendientes restantes como pagados y vincularlos a esta factura final
+            OrderItem::where('order_id', $order->id)
+                ->where('payment_status', 'pending')
+                ->update([
+                    'payment_status' => 'paid',
+                    'invoice_id' => $invoice->id,
+                ]);
+
+            $order->status = 'cerrada';
+            $order->save();
+
+            // Liberar la mesa si aplica
+            if ($order->table_id) {
+                Table::where('id', $order->table_id)->update(['status' => 'libre']);
+            }
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'invoice' => $invoice,
-                'invoice_number' => $invoice->invoice_number
+                'invoice_number' => $invoice->invoice_number,
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al generar factura de delivery:', [
+            Log::error('Error al generar factura:', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Hubo un problema al generar la factura.'], 500);
+        }
+    }
+
+    public function takeAwayInvoice(Request $request)
+    {
+        return $this->createFullOrderInvoice($request, 'takeaway');
+    }
+
+    public function pedidosYaInvoice(Request $request)
+    {
+        return $this->createFullOrderInvoice($request, 'pedidos ya');
+    }
+
+    public function deliveryInvoice(Request $request)
+    {
+        return $this->createFullOrderInvoice($request, 'delivery');
+    }
+
+    /**
+     * Genera una factura completa recalculando subtotal, descuento y total en el servidor
+     * a partir de los ítems aún no facturados de la orden (uso compartido para llevar, PedidosYa y delivery).
+     */
+    private function createFullOrderInvoice(Request $request, string $logContext)
+    {
+        $request->validate([
+            'invoice_number' => 'nullable|string|max:50',
+            'order_id' => 'required|exists:orders,id',
+            'fiscal_name' => 'nullable|string|max:255',
+            'fiscal_ruc' => 'nullable|string|max:30',
+            'subtotal' => 'nullable|numeric|min:0',
+            'discount_type' => 'nullable|in:amount,percent',
+            'discount_value' => 'nullable|numeric|min:0',
+            'discount_reason' => 'nullable|string|max:255',
+            'discount_amount' => 'nullable|numeric|min:0',
+            'total' => 'nullable|numeric|min:0',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $order = Order::lockForUpdate()->findOrFail($request->input('order_id'));
+
+            $unpaidItems = OrderItem::where('order_id', $order->id)
+                ->whereNull('invoice_id')
+                ->lockForUpdate()
+                ->get();
+
+            if ($unpaidItems->isEmpty()) {
+                DB::rollBack();
+                return response()->json([
+                    'error' => 'La orden ya fue facturada o no tiene ítems pendientes de pago.',
+                ], 422);
+            }
+
+            $subtotal = round((float) $unpaidItems->sum(function (OrderItem $item) {
+                return (float) $item->price * (int) $item->quantity;
+            }), 2);
+
+            $invoiceNumber = $this->resolveUniqueInvoiceNumber($request->input('invoice_number'));
+            $discountAmount = $this->calculationService->calculateDiscount(
+                $subtotal,
+                $request->input('discount_type'),
+                $request->input('discount_value')
+            );
+            $total = max(0.0, round($subtotal - $discountAmount, 2));
+
+            $invoice = Invoice::create([
+                'invoice_number' => $invoiceNumber,
+                'order_id' => $order->id,
+                'fiscal_name' => $request->input('fiscal_name'),
+                'fiscal_ruc' => $request->input('fiscal_ruc'),
+                'subtotal' => $subtotal,
+                'discount_type' => $request->input('discount_type'),
+                'discount_value' => $request->input('discount_value'),
+                'discount_reason' => $request->input('discount_reason'),
+                'discount_amount' => $discountAmount,
+                'total' => $total,
+            ]);
+
+            OrderItem::where('order_id', $order->id)
+                ->whereNull('invoice_id')
+                ->update([
+                    'payment_status' => 'paid',
+                    'invoice_id' => $invoice->id,
+                ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'invoice' => $invoice,
+                'invoice_number' => $invoice->invoice_number,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Error al generar factura {$logContext}:", [
                 'error' => $e->getMessage(),
-                'request' => $request->all()
+                'request' => $request->all(),
             ]);
 
             return response()->json([
-                'error' => 'Error interno del servidor.'
+                'error' => 'Error interno del servidor.',
             ], 500);
         }
     }
 
     public function annul(Invoice $invoice)
     {
-       
-
-        // 2. Validar que la factura no esté ya anulada
         if ($invoice->status === 'cancelled') {
             return response()->json(['error' => 'La factura ya ha sido anulada.'], 422);
         }
 
         DB::transaction(function () use ($invoice) {
-            // 3. Cambiar el estado de la factura
             $invoice->update(['status' => 'cancelled']);
-
-            $order = $invoice->order;
-
-            // if ($order) {
-            //     // 4. Si la orden fue cerrada por esta factura, reabrirla.
-            //     if ($order->status === 'cerrada') {
-            //         $order->update(['status' => 'activa']);
-            //     }
-
-            //     // 5. Revertir el estado de pago de los items de la orden que esta factura pagó.
-            //     foreach ($order->order_items as $item) {
-            //         if ($item->payment_status === 'paid') {
-            //             $item->update(['payment_status' => 'pending']);
-            //         }
-            //     }
-            // }
         });
 
         return response()->json(['message' => 'Factura anulada correctamente.']);
     }
 
-public function getNextInvoiceNumber()
-{
-    $nextNumber = Invoice::generateInvoiceNumber(); // El método que ya tienes
-    return response()->json(['invoice_number' => $nextNumber]);
+    public function getNextInvoiceNumber()
+    {
+        $nextNumber = Invoice::generateInvoiceNumber();
+        return response()->json(['invoice_number' => $nextNumber]);
+    }
 }
-
-}
-
-

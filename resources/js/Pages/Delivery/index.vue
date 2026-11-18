@@ -1,654 +1,790 @@
 <template>
-    <AppLayout title="Delivery">
-        <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">Gestión de Delivery</h2>
-                <NavDelivery />
-            </div>
-        </template>
-           
-        <div class="flex justify-end p-4">
-             <button @click="openModal" class="flex items-center px-6 py-3 text-white transition rounded-lg bg-mantis-500 hover:bg-mantis-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Crear Orden de Delivery
-            </button>
-        </div>
+  <AppLayout title="Delivery">
+    <template #header>
+      <NavDelivery />
+    </template>
 
-        <!-- Lista de órdenes activas -->
-        <div class="p-6">
-    <div class="flex items-center mb-6">
-        <div class="p-2 mr-3 text-white rounded-lg bg-mantis-500">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-        </div>
-        <h3 class="text-xl font-bold text-gray-800">Órdenes en Curso</h3>
-    </div>
-    
-  <div v-if="props.orders && props.orders.length > 0" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-    <div 
-      v-for="order in props.orders" 
-      :key="order.id"
-      @click="openOrder(order)"
-      class="flex flex-col overflow-hidden transition-all duration-300 bg-white border border-gray-200 shadow-sm cursor-pointer rounded-xl hover:shadow-lg hover:border-mantis-300"
-    >
-            <!-- Header con número de orden y estado -->
-            <div class="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-gray-50 to-gray-100">
-                <div class="flex items-center">
-                    <span class="p-1 mr-2 text-mantis-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                    </span>
-                    <span class="font-bold text-gray-800">#{{ order.id }}</span>
-                </div>
-                <span 
-                    class="px-3 py-1 text-xs font-medium rounded-full"
-                    :class="{
-                        'bg-yellow-100 text-yellow-800': order.status === 'abierta',
-                        'bg-blue-100 text-blue-800': order.status === 'asignada',
-                        'bg-indigo-100 text-indigo-800': order.status === 'en_camino',
-                        'bg-green-100 text-green-800': order.status === 'entregada'
-                    }"
-                >
-                    {{ order.status.replace('_', ' ') }}
-                </span>
-            </div>
-
-            <!-- Información del cliente -->
-            <div class="px-5 py-4">
-                <div class="flex items-start mb-4">
-                    <span class="p-1 mr-3 text-gray-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 008 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                    </span>
-                    <div>
-                        <p class="font-semibold text-gray-800">{{ order.customer_name }}</p>
-                        <p class="text-sm text-gray-600">📞 {{ order.customer_phone }}</p>
-                    </div>
-                </div>
-
-                <div class="flex items-start">
-                    <span class="p-1 mr-3 text-gray-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </span>
-                    <p class="text-sm text-gray-600">{{ order.delivery_address }}</p>
-                </div>
-
-                <!-- Mostrar rider asignado en la card (usa assigned_to como id) -->
-                <div v-if="order.assigned_to || order.rider_name" class="flex items-center mt-3 text-sm">
-  <span class="p-1 mr-3 text-gray-500">
-    <!-- Ícono de moto -->
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bike-icon lucide-bike"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>
-  </span>
-  <div class="flex flex-col">
-    <span class="font-medium text-gray-800">
-      {{ (props.riders.find(r => r.id === order.assigned_to)?.name) || order.rider_name || (order.assigned_to ? 'Rider #' + order.assigned_to : '—') }}
-    </span>
-  </div>
-</div>
-
-
-                <!-- Resumen compacto de productos -->
-                <div v-if="order.items && order.items.length" class="mt-4 text-xs">
-                  <div class="flex flex-wrap items-center gap-1">
-                    <span class="px-2 py-0.5 font-medium tracking-wide text-green-700 bg-green-100 rounded-full">{{ order.items.length }} prod.</span>
-                    <span class="text-gray-400">•</span>
-                    <span class="text-gray-600 truncate max-w-[200px] sm:max-w-[240px]">
-                      {{ order.items.slice(0,2).map(i => (i.product_name || 'Producto') + (i.quantity>1 ? ' x'+i.quantity : '')).join(', ') }}<span v-if="order.items.length>2"> +{{ order.items.length-2 }}</span>
-                    </span>
-                    <span class="ml-auto text-[10px] font-medium text-mantis-600 uppercase">Ver Detalle</span>
-                  </div>
-                </div>
-
-            </div>
-
-            <!-- Total y acciones -->
-            <div class="px-5 py-4 mt-auto bg-gray-50">
-                <div class="flex items-center justify-between gap-3">
-                    <div class="flex flex-col">
-                      <p class="text-lg font-bold leading-tight text-mantis-600">
-                        C${{ parseFloat(order.total).toFixed(2) }}
-                      </p>
-                      <div v-if="order.discount_amount && order.discount_amount > 0" class="flex items-center mt-1 text-[10px] font-medium text-red-600 gap-1">
-                        <span class="px-1.5 py-0.5 bg-red-100 rounded-full">- C${{ parseFloat(order.discount_amount).toFixed(2) }}</span>
-                        <span v-if="order.discount_type==='percent'" class="text-red-500">({{ order.discount_value }}%)</span>
-                      </div>
-                    </div>
-
-          <div class="flex items-center" @click.stop>
-            <!-- Botón de acción principal que cambia según el estado -->
-            <button 
-              v-if="order.status === 'abierta'"
-              @click.stop="openRiderModal(order)" 
-              class="flex items-center px-3 py-2 text-xs text-white transition bg-blue-500 rounded-lg hover:bg-blue-600"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
-              Asignar Rider
-            </button>
-
-            <button 
-              v-if="order.status === 'asignada'"
-              @click.stop="changeOrderStatus(order, 'en_camino')"
-              class="flex items-center px-3 py-2 text-xs text-white transition bg-indigo-500 rounded-lg hover:bg-indigo-600"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h8a1 1 0 001-1zM3 11h10" />
-              </svg>
-              Marcar En Camino
-            </button>
-
-            <button 
-              v-if="order.status === 'en_camino'"
-              @click.stop="changeOrderStatus(order, 'entregada')"
-              class="flex items-center px-3 py-2 text-xs text-white transition bg-green-500 rounded-lg hover:bg-green-600"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              Marcar Entregada
-            </button>
-
-            <!-- (Se eliminó el botón pequeño de cambiar rider en la card; usar 'Cambiar Rider' desde el detalle) -->
-          </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div v-else class="flex flex-col items-center justify-center p-8 text-center border border-dashed rounded-xl bg-gray-50">
-        <div class="p-3 mb-4 text-gray-400 bg-gray-200 rounded-full">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-        </div>
-        <h3 class="mb-2 text-lg font-medium text-gray-600">No hay órdenes activas</h3>
-        <p class="text-gray-500">Todas las órdenes han sido completadas o no hay pedidos en curso.</p>
-    </div>
-</div>
-
-        <!-- Modal -->
-        <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-70">
-    <!-- Modal container -->
-    <div class="bg-white w-11/12 sm:w-4/5 lg:w-3/4 max-h-[95vh] sm:max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-auto lg:overflow-hidden border border-gray-200">
-      
-      <!-- Header -->
-    <div class="flex items-center justify-between p-5 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
-        <div class="flex items-center">
-          <div class="p-2 mr-3 text-white rounded-lg bg-mantis-500">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-          </div>
-      <h2 class="text-xl font-bold text-gray-800 sm:text-2xl">{{ isEditing ? 'Editar Orden Delivery' : 'Nueva Orden Delivery' }}</h2>
-        </div>
-        <button @click="showModal = false" class="p-2 text-gray-500 transition-colors rounded-full hover:bg-gray-100 hover:text-red-500">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <!-- Body principal: movil -> scroll del modal; lg -> dos columnas con scroll interno -->
-      <div class="flex flex-col flex-1 min-h-0 lg:flex-row lg:overflow-hidden">
-        
-        <!-- Columna izquierda: Info Cliente -->
-        <div class="w-full p-5 border-b lg:w-2/5 lg:border-r bg-gray-50 lg:overflow-y-auto lg:min-h-0">
-          <div class="flex items-center mb-5">
-            <div class="p-2 mr-2 text-white bg-blue-500 rounded-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-gray-700">Información del Cliente</h3>
-          </div>
-
-          <!-- Buscador Unificado -->
-          <div class="mb-4">
-            <label class="flex items-center mb-1 text-sm font-medium text-gray-700">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Buscar Cliente Existente
-            </label>
-            <div class="relative flex items-center">
-              <input
-                v-model="searchTerm"
-                @input="searchCustomers"
-                type="text"
-                placeholder="Buscar por nombre, RUC o teléfono..."
-                class="w-full p-3 pl-10 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-              />
-              <button v-if="customer.id" @click="clearCustomer" class="absolute p-1 text-gray-500 right-2 hover:text-red-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              <ul v-if="searchResults.length" class="absolute z-50 w-full mt-1 overflow-y-auto bg-white border rounded-md shadow-lg max-h-40 top-full scroll-smooth">
-                <li v-for="c in searchResults" :key="c.id"
-                    @click="selectCustomer(c)"
-                    class="px-4 py-2 border-b border-gray-100 cursor-pointer hover:bg-blue-50 last:border-0">
-                  {{ c.name }} - {{ c.phone }}
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <!-- Formulario de cliente -->
-          <div class="p-4 mt-4 border border-gray-200 rounded-lg bg-white/50">
-            <p v-if="!customer.id" class="mb-3 text-sm text-center text-gray-600">O complete los datos para un nuevo cliente:</p>
-            
-            <div class="mb-4">
-              <label class="block mb-1 text-sm font-medium text-gray-700">Nombre</label>
-              <input v-model="customer.name" type="text" class="w-full p-3 border border-gray-300 rounded-lg" :readonly="!!customer.id" />
-            </div>
-
-            <div class="mb-4">
-              <label class="block mb-1 text-sm font-medium text-gray-700">Teléfono</label>
-              <input v-model="customer.phone" type="text" class="w-full p-3 border border-gray-300 rounded-lg" />
-            </div>
-
-            <div class="mb-4">
-              <label class="block mb-1 text-sm font-medium text-gray-700">Nombre Fiscal</label>
-              <input v-model="customer.fiscal_name" type="text" class="w-full p-3 border border-gray-300 rounded-lg" />
-            </div>
-
-            <div class="mb-4">
-              <label class="block mb-1 text-sm font-medium text-gray-700">RUC</label>
-              <input v-model="customer.fiscal_ruc" type="text" class="w-full p-3 border border-gray-300 rounded-lg" />
-            </div>
-
-            <!-- Dirección: textarea en móviles o select si hay direcciones guardadas -->
-            <div class="mb-4">
-              <label class="flex items-center mb-1 text-sm font-medium text-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Dirección de Envío
-              </label>
-              <textarea
-                v-if="!customer.id || !customer.addresses || customer.addresses.length === 0"
-                v-model="customer.selectedAddress"
-                rows="3"
-                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                placeholder="Escriba la dirección de entrega"
-              ></textarea>
-              <select
-                v-else
-                v-model="customer.selectedAddress"
-                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-              >
-                <option v-for="address in customer.addresses" :key="address.id" :value="address.address">
-                  {{ address.address }}
-                </option>
-              </select>
-
-              <!-- NUEVOS CAMPOS: indicaciones, método de pago, efectivo y notas de delivery -->
-            <div class="mb-4">
-              <label class="block mb-1 text-sm font-medium text-gray-700">Indicaciones del pedido</label>
-              <textarea v-model="orderInstructions" rows="2" class="w-full p-3 border border-gray-300 rounded-lg" ></textarea>
-            </div>
-
-            <div class="mb-4">
-              <label class="block mb-1 text-sm font-medium text-gray-700">Método de pago</label>
-                <select v-model="paymentMethod" class="w-full p-3 border border-gray-300 rounded-lg">
-                <option :value="null" disabled>Seleccione un método de pago</option>
-                <option value="cash">Efectivo</option>
-                <option value="card">Tarjeta</option>
-                <option value="bank_transfer">Transferencia</option>
-                </select>
-            </div>
-
-            <div class="mb-4">
-              <label v-if="paymentMethod === 'cash'" class="block mb-1 text-sm font-medium text-gray-700">Importe en efectivo (recibido)</label>
-              <input v-if="paymentMethod === 'cash'" type="number" v-model.number="cashAmount" step="0.01" min="0" class="w-full p-3 border border-gray-300 rounded-lg"  />
-            </div>
-
-            <div class="mb-4">
-              <label class="block mb-1 text-sm font-medium text-gray-700">Notas para delivery</label>
-              <textarea v-model="deliveryNotes" rows="2" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Notas para el rider..."></textarea>
-            </div>
-
-            </div>
-
-            
-          </div>
-        </div>
-
-        <!-- Columna derecha: Productos -->
-        <div class="flex flex-col w-full p-5 lg:w-3/5 lg:overflow-y-auto lg:min-h-0">
-          <div class="flex items-center mb-5">
-            <div class="p-2 mr-2 text-white bg-green-500 rounded-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-gray-700">Productos</h3>
-          </div>
-
-          <!-- Lista de productos agrupados -->
-          <div class="flex-1 p-4 mb-4 border border-gray-200 rounded-lg bg-gray-50 lg:overflow-y-auto">
-             <div v-for="(products, category) in groupedProducts" :key="category">
-               <h4 class="px-3 py-2 my-2 text-sm font-bold text-gray-600 uppercase bg-gray-100 rounded">
-                 {{ category }}
-               </h4>
-               <div
-                 v-for="product in products"
-                 :key="product.id"
-                 class="flex items-center justify-between p-4 mb-2 transition-colors bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 last:mb-0"
-                 @click="addProduct(product)"
-               >
-                 <div class="flex items-center">
-                   <div class="flex items-center justify-center w-10 h-10 mr-3 bg-blue-100 rounded-lg">
-                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                     </svg>
-                   </div>
-                   <div>
-                     <span class="font-medium text-gray-800">{{ product.name }}</span>
-                   </div>
-                 </div>
-                 <span class="font-semibold text-mantis-600">C${{ product.price}}</span>
-               </div>
-             </div>
-           </div>
-
-          <!-- Productos seleccionados -->
-          <div v-if="selectedProducts.length > 0" class="mb-4">
-            <div class="flex items-center mb-3">
-              <div class="p-1 mr-2 text-mantis-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h4 class="font-semibold text-gray-700 text-md">Tu Orden</h4>
-            </div>
-            <div class="border border-gray-200 divide-y divide-gray-100 rounded-lg">
-              <div v-for="(p, index) in selectedProducts" :key="p.temp_id || p.id" class="flex items-center justify-between p-3">
-                <!-- Nombre del producto -->
-                <span class="font-medium text-gray-800">{{ p.name }}</span>
-                
-                <div class="flex items-center gap-4">
-                    <!-- Controles de cantidad -->
-                    <div class="flex items-center gap-2">
-                        <button @click="decreaseQuantity(p)" class="p-1 text-gray-500 transition bg-gray-200 rounded-full hover:bg-gray-300 hover:text-red-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-                            </svg>
-                        </button>
-                        <span class="w-6 font-medium text-center text-gray-700">{{ p.quantity }}</span>
-                        <button @click="increaseQuantity(p)" class="p-1 text-gray-500 transition bg-gray-200 rounded-full hover:bg-gray-300 hover:text-green-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                        </button>
-                    </div>
-                    
-                    <!-- Precio total del item -->
-                    <div class="w-20 font-semibold text-right text-mantis-600">C${{ (p.price * p.quantity).toFixed(2) }}</div>
-
-                    <!-- Botón de eliminar -->
-                    <button @click="removeProduct(p)" class="text-gray-400 transition hover:text-red-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-          </div>
-
-          <!-- Total -->
-          <div class="flex justify-between p-4 mb-4 text-xl font-bold bg-gray-100 rounded-lg">
-            <span class="text-gray-700">Total:</span>
-            <span class="text-mantis-600">C${{ deliveryTotalWithDiscount.toFixed(2) }}</span>
-          </div>
-
-          <!-- Checkbox y descuento para Delivery -->
-    <div v-if="showModal" class="p-3 mt-2 border-t">
-      <div class="flex items-center gap-2">
-        <input type="checkbox" v-model="toggleDeliveryDiscount" id="delivery-discount-toggle" class="w-4 h-4 text-orange-500 rounded focus:ring-orange-400">
-        <label for="delivery-discount-toggle" class="text-sm font-medium text-gray-700">Aplicar Descuento</label>
-      </div>
-
-      <div v-if="toggleDeliveryDiscount" class="p-3 mt-3 space-y-2 border rounded-lg bg-orange-50">
-        <!-- Tipo de descuento -->
-        <div class="flex items-center gap-4">
-          <label class="text-sm">Tipo:</label>
-          <div class="flex items-center gap-2">
-            <input type="radio" id="delivery-discount-amount" value="amount" v-model="deliveryDiscountType">
-            <label for="delivery-discount-amount" class="text-sm">Monto Fijo</label>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="radio" id="delivery-discount-percent" value="percent" v-model="deliveryDiscountType">
-            <label for="delivery-discount-percent" class="text-sm">Porcentaje</label>
-          </div>
-        </div>
-
-        <!-- Valor y Razón -->
-        <div class="flex items-center gap-2">
-          <input type="number" v-model.number="deliveryDiscountValue" class="w-24 px-2 py-1 border rounded-md" placeholder="Valor">
-          <input type="text" v-model="deliveryDiscountReason" class="flex-grow px-2 py-1 border rounded-md" placeholder="Razón del descuento">
-        </div>
-
-        <!-- Botón Aplicar -->
-        <button @click="applyDiscountDelivery" class="w-full px-3 py-1 mt-2 text-sm text-white bg-orange-500 rounded-md hover:bg-orange-600">
-          Aplicar
-        </button>
-      </div>
-    </div>
-
-          <!-- Botones de acción -->
-          <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <button @click="showModal = false" class="flex items-center px-5 py-3 text-base text-gray-700 transition-colors bg-gray-200 rounded-lg hover:bg-gray-300">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Cancelar
-            </button>
-            <button @click="submitOrder" class="flex items-center px-5 py-3 text-base text-white transition-colors rounded-lg bg-mantis-500 hover:bg-mantis-600">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              Guardar Orden
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- Modal para precio manual -->
-  <div v-if="showCustomModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50">
-    <div class="w-11/12 p-6 mx-auto bg-white rounded-lg shadow-xl md:w-1/3">
-      <h3 class="text-lg font-bold">Precio Manual</h3>
-      <p class="mt-1 text-sm text-gray-600">Producto: <strong>{{ selectedProduct?.name }}</strong></p>
-
-      <label class="block mt-4 mb-2 text-sm font-medium">Precio (C$)</label>
-      <input
-        v-model.number="customPrice"
-        type="number"
-        class="w-full p-2 border border-gray-300 rounded-md"
-        placeholder="Ingrese el precio"
-        @keyup.enter="addWithCustomPrice"
-      />
-
-      <div class="flex justify-end gap-2 mt-6">
-        <button @click="showCustomModal = false" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-md">Cancelar</button>
-        <button @click="addWithCustomPrice" class="px-4 py-2 text-white rounded-md bg-mantis-500">Agregar</button>
-      </div>
-    </div>
-  </div>
-  </div>
-    </AppLayout>
     <Toast />
-    <ConfirmDialog group="delivery"></ConfirmDialog>
+    <ConfirmDialog group="delivery" />
 
-    <!-- Modal detalle de orden -->
-    <div v-if="showOrderModal && selectedOrder" class="fixed inset-0 z-40 flex items-start justify-center w-full h-full pt-6 overflow-y-auto bg-black/60 backdrop-blur-sm">
-      <div class="w-full max-w-3xl mx-4 mb-10 overflow-hidden bg-white shadow-2xl rounded-xl">
-        <!-- Header -->
-        <div class="flex items-start justify-between px-6 py-5 border-b bg-gradient-to-r from-gray-50 to-gray-100">
-          <div class="space-y-1">
-            <div class="flex items-center gap-3">
-              <h3 class="text-2xl font-bold tracking-tight text-gray-800">Orden #{{ selectedOrder.id }}</h3>
-              <span class="px-2 py-1 text-xs font-medium rounded-full"
-                :class="{
-                  'bg-yellow-100 text-yellow-800': selectedOrder.status === 'abierta',
-                  'bg-blue-100 text-blue-800': selectedOrder.status === 'asignada',
-                  'bg-indigo-100 text-indigo-800': selectedOrder.status === 'en_camino',
-                  'bg-green-100 text-green-800': selectedOrder.status === 'entregada'
-                }"
-              >{{ selectedOrder.status.replace('_',' ') }}</span>
+    <div class="p-3 mx-auto space-y-4 max-w-7xl sm:p-6">
+      <!-- Barra superior: Título, Filtros de estado y Nueva orden -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900 sm:text-2xl">Órdenes Delivery</h1>
+          <p class="text-xs text-gray-500">Gestiona pedidos activos, motorizados y facturación</p>
+        </div>
+        <button @click="openModal" class="w-full btn btn-primary sm:w-auto">
+          <i class="text-xs pi pi-plus"></i>
+          <span>Nueva orden</span>
+        </button>
+      </div>
+
+      <!-- Pills de estado (scroll horizontal en móvil) -->
+      <div class="flex items-center gap-2 pb-1 overflow-x-auto no-scrollbar">
+        <button
+          @click="statusFilter = 'all'"
+          class="pill shrink-0"
+          :class="statusFilter === 'all' ? 'pill-active' : ''"
+        >
+          Todas ({{ statusCounts.all }})
+        </button>
+        <button
+          @click="statusFilter = 'abierta'"
+          class="pill shrink-0"
+          :class="statusFilter === 'abierta' ? 'pill-active' : ''"
+        >
+          Abiertas ({{ statusCounts.abierta }})
+        </button>
+        <button
+          @click="statusFilter = 'asignada'"
+          class="pill shrink-0"
+          :class="statusFilter === 'asignada' ? 'pill-active' : ''"
+        >
+          Asignadas ({{ statusCounts.asignada }})
+        </button>
+        <button
+          @click="statusFilter = 'en_camino'"
+          class="pill shrink-0"
+          :class="statusFilter === 'en_camino' ? 'pill-active' : ''"
+        >
+          En camino ({{ statusCounts.en_camino }})
+        </button>
+      </div>
+
+      <!-- Empty state -->
+      <div v-if="filteredOrders.length === 0" class="p-10 text-center card">
+        <i class="text-3xl text-gray-300 pi pi-truck"></i>
+        <p class="mt-2 text-sm font-medium text-gray-600">No hay órdenes en esta vista</p>
+        <button v-if="statusFilter !== 'all'" @click="statusFilter = 'all'" class="mt-3 text-xs btn btn-secondary">
+          Ver todas las órdenes
+        </button>
+      </div>
+
+      <!-- Grid de tarjetas de delivery -->
+      <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          v-for="order in filteredOrders"
+          :key="order.id"
+          @click="openOrder(order)"
+          class="flex flex-col justify-between p-4 transition cursor-pointer card hover:shadow-md hover:border-mantis-300 active:scale-[0.99]"
+        >
+          <div>
+            <!-- Encabezado tarjeta -->
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center min-w-0 gap-2">
+                <span class="font-bold text-gray-900">#{{ order.id }}</span>
+                <span
+                  class="px-2 py-0.5 text-[11px] font-semibold border rounded-full"
+                  :class="orderStatusMeta(order.status).badge"
+                >
+                  {{ orderStatusMeta(order.status).label }}
+                </span>
+              </div>
+              <span class="text-base font-extrabold text-mantis-700 tabular-nums shrink-0">
+                C${{ money(order.total) }}
+              </span>
             </div>
-            <p class="text-sm text-gray-500">Creada: {{ selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) : '-' }}</p>
+
+            <!-- Cliente y dirección -->
+            <div class="mt-2.5 space-y-1">
+              <div class="flex items-center justify-between gap-2">
+                <p class="font-semibold text-gray-900 truncate">{{ order.customer_name || 'Sin cliente' }}</p>
+                <span v-if="order.customer_phone" class="text-xs text-gray-500 shrink-0 tabular-nums">
+                  <i class="pi pi-phone text-[10px] mr-0.5"></i>{{ order.customer_phone }}
+                </span>
+              </div>
+              <p class="text-xs text-gray-600 line-clamp-2">
+                <i class="pi pi-map-marker text-[10px] mr-1 text-gray-400"></i>{{ order.delivery_address || 'Sin dirección' }}
+              </p>
+            </div>
+
+            <!-- Productos resumidos (máx 3 para evitar tarjetas enormes) -->
+            <div v-if="order.items && order.items.length" class="flex flex-wrap gap-1 mt-3">
+              <span
+                v-for="(it, idx) in order.items.slice(0, 3)"
+                :key="idx"
+                class="px-2 py-0.5 text-[11px] font-medium text-gray-700 bg-gray-100 rounded-md truncate max-w-[180px]"
+              >
+                {{ it.quantity }}× {{ it.product_name }}
+              </span>
+              <span
+                v-if="order.items.length > 3"
+                class="px-2 py-0.5 text-[11px] font-semibold text-mantis-700 bg-mantis-50 rounded-md"
+              >
+                +{{ order.items.length - 3 }} más
+              </span>
+            </div>
           </div>
-          <button @click="closeOrderModal" class="p-2 text-gray-500 transition rounded-full hover:bg-gray-100 hover:text-red-500">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+
+          <!-- Footer de tarjeta: Rider y acciones rápidas -->
+          <div class="flex items-center justify-between gap-2 pt-3 mt-3 border-t border-gray-100" @click.stop>
+            <button
+              @click="openRiderModal(order)"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg transition"
+              :class="order.rider_name ? 'bg-mantis-50 text-mantis-800 hover:bg-mantis-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+            >
+              <i class="pi pi-user text-[11px]"></i>
+              <span class="truncate max-w-[115px]">{{ order.rider_name || 'Asignar rider' }}</span>
+            </button>
+
+            <div class="flex items-center gap-1.5">
+              <button
+                v-if="order.status === 'asignada'"
+                @click="changeOrderStatus(order, 'en_camino')"
+                class="btn btn-primary py-1.5 px-2.5 text-xs"
+              >
+                En camino
+              </button>
+              <button
+                v-else-if="order.status === 'en_camino'"
+                @click="changeOrderStatus(order, 'entregada')"
+                class="btn btn-primary py-1.5 px-2.5 text-xs"
+              >
+                Entregada
+              </button>
+              <button
+                @click="openOrder(order)"
+                class="btn btn-outline py-1.5 px-2.5 text-xs"
+              >
+                Detalle
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL CREAR / EDITAR ORDEN DELIVERY -->
+    <div v-if="showModal" class="modal-backdrop">
+      <div class="modal-sheet w-full max-w-6xl lg:h-[90vh]">
+        <!-- Header del modal -->
+        <div class="modal-header shrink-0">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <h2 class="truncate modal-title">
+              {{ isEditing ? `Editar Orden #${editingOrderId}` : 'Nueva Orden Delivery' }}
+            </h2>
+            <span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-mantis-100 text-mantis-800 tabular-nums shrink-0">
+              C${{ money(deliveryTotalWithDiscount) }}
+            </span>
+          </div>
+          <button @click="showModal = false" class="icon-btn" aria-label="Cerrar">
+            <i class="text-sm pi pi-times"></i>
           </button>
         </div>
 
-        <!-- Body -->
-        <div class="grid gap-6 px-6 py-6 md:grid-cols-5">
-          <!-- Customer Info -->
-          <div class="md:col-span-2">
-            <h4 class="mb-3 text-xs font-semibold tracking-wide text-gray-500 uppercase">Cliente</h4>
-            <div class="p-4 space-y-3 border rounded-lg bg-white/70">
-              <div class="space-y-1">
-                <p class="text-base font-semibold text-gray-800">{{ selectedOrder.customer_name }}</p>
-                <p class="text-sm text-gray-600">📞 {{ selectedOrder.customer_phone || '-' }}</p>
+        <!-- Tabs para móvil y tablet (< lg) -->
+        <div class="grid grid-cols-3 border-b border-gray-200 bg-gray-50 shrink-0 lg:hidden">
+          <button
+            @click="deliveryTab = 'customer'"
+            class="tab"
+            :class="deliveryTab === 'customer' ? 'tab-active' : ''"
+          >
+            <i class="text-xs pi pi-user"></i>
+            <span>Cliente</span>
+            <span v-if="customer.name" class="w-1.5 h-1.5 rounded-full bg-mantis-600"></span>
+          </button>
+          <button
+            @click="deliveryTab = 'menu'"
+            class="tab"
+            :class="deliveryTab === 'menu' ? 'tab-active' : ''"
+          >
+            <i class="text-xs pi pi-th-large"></i>
+            <span>Menú</span>
+          </button>
+          <button
+            @click="deliveryTab = 'order'"
+            class="tab"
+            :class="deliveryTab === 'order' ? 'tab-active' : ''"
+          >
+            <i class="text-xs pi pi-shopping-cart"></i>
+            <span>Orden</span>
+            <span v-if="pendingUnits > 0" class="text-white badge bg-mantis-600">{{ pendingUnits }}</span>
+          </button>
+        </div>
+
+        <!-- Cuerpo de 3 paneles (tabs en < lg, columnas independientes en lg+) -->
+        <div class="flex flex-col flex-1 min-h-0 overflow-hidden lg:grid lg:grid-cols-12">
+          <!-- COL 1: Cliente, Dirección y Pago -->
+          <div
+            class="flex-col min-h-0 p-4 space-y-3 overflow-y-auto border-gray-200 lg:col-span-4 lg:border-r lg:flex"
+            :class="deliveryTab === 'customer' ? 'flex flex-1' : 'hidden'"
+          >
+            <!-- Buscar cliente -->
+            <div class="relative">
+              <label class="label">Buscar cliente existente</label>
+              <div class="flex gap-1.5">
+                <div class="relative flex-1">
+                  <i class="absolute text-xs text-gray-400 -translate-y-1/2 pointer-events-none pi pi-search left-3 top-1/2"></i>
+                  <input
+                    v-model="searchTerm"
+                    @input="searchCustomers"
+                    type="text"
+                    placeholder="Nombre o teléfono..."
+                    class="pl-8 input"
+                  >
+                </div>
+                <button
+                  v-if="customer.id || searchTerm"
+                  @click="clearCustomer"
+                  type="button"
+                  class="px-3 btn btn-secondary shrink-0"
+                  title="Limpiar cliente"
+                >
+                  <i class="text-xs pi pi-times"></i>
+                </button>
               </div>
-              <div class="pt-2 space-y-2 text-xs border-t">
-                <p><span class="font-medium text-gray-500">Nombre Fiscal:</span> <span class="text-gray-700">{{ selectedOrder.fiscal_name || '—' }}</span></p>
-                <p><span class="font-medium text-gray-500">RUC:</span> <span class="text-gray-700">{{ selectedOrder.fiscal_ruc || '—' }}</span></p>
-                <p class="mt-2 text-[11px] leading-snug text-gray-500">Si los datos fiscales están vacíos, puedes completarlos desde edición / facturación.</p>
+
+              <!-- Dropdown resultados -->
+              <ul
+                v-if="searchResults.length > 0"
+                class="absolute left-0 right-0 z-20 mt-1 overflow-y-auto bg-white border border-gray-200 divide-y divide-gray-100 shadow-lg rounded-xl max-h-52"
+              >
+                <li
+                  v-for="c in searchResults"
+                  :key="c.id"
+                  @click="selectCustomer(c)"
+                  class="px-3 py-2.5 text-sm cursor-pointer hover:bg-mantis-50"
+                >
+                  <p class="font-semibold text-gray-900">{{ c.name }}</p>
+                  <p class="text-xs text-gray-500">{{ c.phone || 'Sin teléfono' }}</p>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Datos básicos -->
+            <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <div>
+                <label class="label">Nombre *</label>
+                <input v-model="customer.name" type="text" placeholder="Nombre completo" class="input">
               </div>
-              <div class="pt-2 border-t">
-                <p class="mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase">Dirección</p>
-                <p class="text-sm text-gray-700 whitespace-pre-line">{{ selectedOrder.delivery_address }}</p>
+              <div>
+                <label class="label">Teléfono</label>
+                <input v-model="customer.phone" type="text" inputmode="tel" placeholder="8888-8888" class="input">
               </div>
             </div>
 
-            <!-- Totals / Discount -->
-            <div class="p-4 mt-6 space-y-2 border rounded-lg bg-white/70">
-              <h4 class="text-xs font-semibold tracking-wide text-gray-500 uppercase">Resumen</h4>
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Subtotal</span>
-                <span class="font-medium text-gray-700">C${{ (selectedOrder.subtotal ?? (selectedOrder.items ? selectedOrder.items.reduce((a,i)=>a + (parseFloat(i.price)||0)*i.quantity,0) : 0)).toFixed(2) }}</span>
+            <!-- Dirección -->
+            <div>
+              <label class="label">Dirección de entrega *</label>
+              <div v-if="customer.addresses && customer.addresses.length" class="flex flex-wrap gap-1.5 mb-1.5">
+                <button
+                  v-for="(addr, idx) in customer.addresses"
+                  :key="addr.id || idx"
+                  type="button"
+                  @click="customer.selectedAddress = addr.address"
+                  class="px-2.5 py-1 text-xs font-medium rounded-lg border transition text-left"
+                  :class="customer.selectedAddress === addr.address ? 'bg-mantis-50 border-mantis-500 text-mantis-800' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'"
+                >
+                  {{ addr.address }}
+                </button>
               </div>
-              <div v-if="selectedOrder.discount_amount && selectedOrder.discount_amount > 0" class="text-sm">
-                <div class="flex justify-between text-red-600">
-                  <span>Descuento<span v-if="selectedOrder.discount_type==='percent'"> ({{ selectedOrder.discount_value }}%)</span></span>
-                  <span>- C${{ parseFloat(selectedOrder.discount_amount).toFixed(2) }}</span>
-                </div>
-                <p v-if="selectedOrder.discount_reason" class="mt-0.5 text-[11px] text-red-500">Motivo: {{ selectedOrder.discount_reason }}</p>
+              <textarea
+                v-model="customer.selectedAddress"
+                rows="2"
+                placeholder="Dirección exacta y referencias..."
+                class="resize-none input"
+              ></textarea>
+            </div>
+
+            <!-- Datos fiscales colapsables -->
+            <div class="border border-gray-200 rounded-xl bg-gray-50/70">
+              <button
+                type="button"
+                @click="showFiscalFields = !showFiscalFields"
+                class="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-gray-700"
+              >
+                <span>Datos fiscales (Opcional)</span>
+                <i :class="showFiscalFields ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="text-[11px]"></i>
+              </button>
+              <div v-if="showFiscalFields" class="grid grid-cols-1 gap-2 px-3 pb-3 sm:grid-cols-2 lg:grid-cols-1">
+                <input v-model="customer.fiscal_name" type="text" placeholder="Nombre fiscal / Razón social" class="input">
+                <input v-model="customer.fiscal_ruc" type="text" placeholder="RUC / Cédula" class="input">
               </div>
-              <div class="flex justify-between pt-2 text-base font-semibold border-t">
-                <span class="text-gray-700">Total</span>
-                <span class="text-mantis-600">C${{ parseFloat(selectedOrder.total).toFixed(2) }}</span>
+            </div>
+
+            <!-- Método de pago -->
+            <div>
+              <label class="label">Método de pago *</label>
+              <div class="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  @click="paymentMethod = 'cash'"
+                  class="flex flex-col items-center gap-1 px-2 py-2 text-xs font-semibold transition border rounded-xl"
+                  :class="paymentMethod === 'cash' ? 'bg-mantis-50 border-mantis-500 text-mantis-800' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'"
+                >
+                  <i class="text-sm pi pi-money-bill"></i>
+                  <span>Efectivo</span>
+                </button>
+                <button
+                  type="button"
+                  @click="paymentMethod = 'card'"
+                  class="flex flex-col items-center gap-1 px-2 py-2 text-xs font-semibold transition border rounded-xl"
+                  :class="paymentMethod === 'card' ? 'bg-mantis-50 border-mantis-500 text-mantis-800' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'"
+                >
+                  <i class="text-sm pi pi-credit-card"></i>
+                  <span>Tarjeta</span>
+                </button>
+                <button
+                  type="button"
+                  @click="paymentMethod = 'bank_transfer'"
+                  class="flex flex-col items-center gap-1 px-2 py-2 text-xs font-semibold transition border rounded-xl"
+                  :class="paymentMethod === 'bank_transfer' ? 'bg-mantis-50 border-mantis-500 text-mantis-800' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'"
+                >
+                  <i class="text-sm pi pi-building-columns"></i>
+                  <span>Transf.</span>
+                </button>
               </div>
+              <div v-if="paymentMethod === 'cash'" class="mt-2">
+                <label class="label">Con cuánto paga (C$)</label>
+                <input v-model.number="cashAmount" type="number" step="0.01" min="0" placeholder="0.00" class="input">
+              </div>
+            </div>
+
+            <!-- Indicaciones -->
+            <div class="grid grid-cols-1 gap-2">
+              <div>
+                <label class="label">Indicaciones de cocina / orden</label>
+                <input v-model="orderInstructions" type="text" placeholder="Ej: Sin cebolla, cubiertos..." class="input">
+              </div>
+              <div>
+                <label class="label">Notas para el motorizado</label>
+                <input v-model="deliveryNotes" type="text" placeholder="Ej: Casa portón verde, llamar al llegar..." class="input">
+              </div>
+            </div>
+
+            <!-- Botón continuar en móvil -->
+            <div class="pt-2 mt-auto lg:hidden">
+              <button @click="deliveryTab = 'menu'" type="button" class="w-full btn btn-primary">
+                <span>Continuar al menú</span>
+                <i class="text-xs pi pi-arrow-right"></i>
+              </button>
             </div>
           </div>
 
-          <!-- Products -->
-          <div class="md:col-span-3">
-            <h4 class="mb-3 text-xs font-semibold tracking-wide text-gray-500 uppercase">Productos</h4>
-            <div v-if="selectedOrder.items && selectedOrder.items.length" class="overflow-hidden border rounded-md">
-              <table class="w-full text-sm">
-                <thead class="text-xs text-left text-gray-600 bg-gray-100">
-                  <tr>
-                    <th class="px-3 py-2">Producto</th>
-                    <th class="px-3 py-2 text-center">Cant.</th>
-                    <th class="px-3 py-2 text-right">Precio</th>
-                    <th class="px-3 py-2 text-right">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(it,idx) in selectedOrder.items" :key="idx" class="border-t hover:bg-gray-50/60">
-                    <td class="px-3 py-2">{{ it.product_name }}</td>
-                    <td class="px-3 py-2 text-center">{{ it.quantity }}</td>
-                    <td class="px-3 py-2 text-right">C${{ parseFloat(it.price).toFixed(2) }}</td>
-                    <td class="px-3 py-2 font-medium text-right">C${{ (parseFloat(it.price) * it.quantity).toFixed(2) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <p v-else class="p-4 text-sm text-center text-gray-500 border rounded">No hay items cargados.</p>
+          <!-- COL 2: Catálogo de productos -->
+          <div
+            class="flex-col min-h-0 border-gray-200 lg:col-span-4 xl:col-span-5 lg:border-r lg:flex"
+            :class="deliveryTab === 'menu' ? 'flex flex-1' : 'hidden'"
+          >
+            <!-- Buscador y categorías sticky -->
+            <div class="p-3 space-y-2.5 bg-white border-b border-gray-200 shrink-0">
+              <div class="relative">
+                <i class="absolute text-xs text-gray-400 -translate-y-1/2 pointer-events-none pi pi-search left-3 top-1/2"></i>
+                <input
+                  v-model="productSearch"
+                  type="text"
+                  placeholder="Buscar producto..."
+                  class="pl-8 pr-8 input"
+                >
+                <button
+                  v-if="productSearch"
+                  @click="productSearch = ''"
+                  type="button"
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <i class="text-xs pi pi-times"></i>
+                </button>
+              </div>
 
-            <!-- Estado actions -->
-            <div class="flex flex-wrap justify-end gap-2 mt-6">
-              <button @click="startEditOrder" class="px-4 py-2 text-xs text-white transition bg-orange-500 rounded hover:bg-orange-600">Editar</button>
-              <button 
-                v-if="selectedOrder.status !== 'entregada' && selectedOrder.status !== 'anulada'"
-                @click="confirmCancelOrder(selectedOrder)" 
-                class="px-4 py-2 text-xs text-white transition bg-red-500 rounded hover:bg-red-600">
-                Anular Orden
+              <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                <button
+                  @click="activeCategory = 'all'"
+                  type="button"
+                  class="pill shrink-0"
+                  :class="activeCategory === 'all' ? 'pill-active' : ''"
+                >
+                  Todos
+                </button>
+                <button
+                  v-for="cat in deliveryCategories"
+                  :key="cat"
+                  @click="activeCategory = cat"
+                  type="button"
+                  class="pill shrink-0"
+                  :class="activeCategory === cat ? 'pill-active' : ''"
+                >
+                  {{ cat }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Lista de productos -->
+            <div class="flex-1 min-h-0 p-3 space-y-4 overflow-y-auto">
+              <div v-if="visibleDeliveryCatalog.length === 0" class="py-10 text-sm text-center text-gray-500">
+                No se encontraron productos
+              </div>
+
+              <div v-for="group in visibleDeliveryCatalog" :key="group.category" class="space-y-2">
+                <h4 class="text-xs font-bold tracking-wider text-gray-400 uppercase">{{ group.category }}</h4>
+                <div class="grid grid-cols-2 gap-2 xl:grid-cols-3">
+                  <button
+                    v-for="item in group.items"
+                    :key="item.id"
+                    @click="addProduct(item)"
+                    type="button"
+                    class="product-tile"
+                    :class="qtyInDeliveryOrder[item.id] ? 'border-mantis-400 bg-mantis-50/40' : ''"
+                  >
+                    <div class="flex items-start justify-between gap-1">
+                      <span class="text-xs font-semibold text-left text-gray-800 line-clamp-2">{{ item.name }}</span>
+                      <span
+                        v-if="qtyInDeliveryOrder[item.id]"
+                        class="px-1.5 py-0.5 text-[10px] font-bold text-white rounded-full bg-mantis-600 shrink-0 tabular-nums"
+                      >
+                        {{ qtyInDeliveryOrder[item.id] }}
+                      </span>
+                    </div>
+                    <div class="flex items-center justify-between w-full pt-2 mt-auto">
+                      <span class="text-xs font-bold text-mantis-700 tabular-nums">
+                        {{ item.is_generic ? 'Precio manual' : `C$${money(item.price)}` }}
+                      </span>
+                      <i v-if="item.is_generic" class="pi pi-sliders-h text-[11px] text-amber-600"></i>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Barra inferior flotante móvil/tablet para pasar a Orden -->
+            <div v-if="pendingUnits > 0" class="p-3 bg-white border-t border-gray-200 shrink-0 lg:hidden">
+              <button @click="deliveryTab = 'order'" type="button" class="justify-between w-full btn btn-primary">
+                <span>Ver orden ({{ pendingUnits }})</span>
+                <span class="font-extrabold tabular-nums">C${{ money(deliveryTotalWithDiscount) }}</span>
               </button>
-              <!-- Botón para abrir modal de asignar/cambiar rider (solo en detalle) -->
-              <button @click="openRiderModal(selectedOrder)" class="px-4 py-2 text-xs text-white rounded bg-mantis-600 hover:bg-mantis-700">Cambiar Rider</button>
-              <button
-                v-if="selectedOrder.status==='asignada'"
-                @click="changeOrderStatus(selectedOrder, 'en_camino')"
-                class="px-4 py-2 text-xs text-white bg-indigo-500 rounded hover:bg-indigo-600"
-              >Marcar En Camino</button>
-              <button
-                v-if="selectedOrder.status==='en_camino'"
-                @click="changeOrderStatus(selectedOrder, 'entregada')"
-                class="px-4 py-2 text-xs text-white bg-green-500 rounded hover:bg-green-600"
-              >Marcar Entregada</button>
-              
-              <button @click="closeOrderModal" class="px-4 py-2 text-xs text-gray-700 transition bg-gray-200 rounded hover:bg-gray-300">Cerrar</button>
+            </div>
+          </div>
+
+          <!-- COL 3: Tu Orden (compacto 1 fila por producto) -->
+          <div
+            class="flex-col min-h-0 bg-gray-50/60 lg:col-span-4 xl:col-span-3 lg:flex"
+            :class="deliveryTab === 'order' ? 'flex flex-1' : 'hidden'"
+          >
+            <!-- Lista compacta de productos -->
+            <div class="flex-1 min-h-0 overflow-y-auto bg-white divide-y divide-gray-200/80">
+              <div v-if="selectedProducts.length === 0" class="flex flex-col items-center justify-center h-40 p-6 text-center text-gray-400">
+                <i class="pi pi-shopping-bag text-2xl mb-1.5"></i>
+                <p class="text-xs">Agrega productos del menú</p>
+              </div>
+
+              <div
+                v-for="(p, idx) in selectedProducts"
+                :key="itemKey(p, idx)"
+                class="flex items-center justify-between gap-2 px-3 py-2"
+              >
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <p class="text-xs font-semibold text-gray-900 truncate">{{ p.name }}</p>
+                    <span v-if="p.is_active === false" class="px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 bg-amber-100 rounded shrink-0">Inactivo</span>
+                  </div>
+                  <p class="text-[11px] text-gray-500 tabular-nums">C${{ money(p.price) }} c/u</p>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                  <div class="stepper">
+                    <button @click="decreaseQuantity(p)" type="button" aria-label="Disminuir">
+                      <i class="pi pi-minus text-[10px]"></i>
+                    </button>
+                    <span>{{ p.quantity }}</span>
+                    <button @click="increaseQuantity(p)" :class="p.is_active === false ? '!opacity-45' : ''" type="button" aria-label="Aumentar">
+                      <i class="pi pi-plus text-[10px]"></i>
+                    </button>
+                  </div>
+                  <span class="text-xs font-bold text-right text-gray-900 w-14 tabular-nums">
+                    C${{ money(p.price * p.quantity) }}
+                  </span>
+                  <button
+                    @click="removeProduct(p)"
+                    type="button"
+                    class="p-1 text-gray-400 transition hover:text-red-600"
+                    title="Quitar"
+                  >
+                    <i class="text-xs pi pi-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Descuento y resumen sticky -->
+            <div class="p-3 space-y-2.5 bg-white border-t border-gray-200 shrink-0">
+              <!-- Toggle descuento -->
+              <label class="flex items-center justify-between cursor-pointer select-none">
+                <span class="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                  <i class="pi pi-percentage text-[11px] text-amber-600"></i>
+                  Aplicar descuento
+                </span>
+                <input v-model="toggleDeliveryDiscount" type="checkbox" class="checkbox">
+              </label>
+
+              <div v-if="toggleDeliveryDiscount" class="p-2.5 space-y-2 rounded-xl bg-amber-50/70 border border-amber-200">
+                <div class="flex items-center gap-2">
+                  <div class="segmented shrink-0">
+                    <button
+                      type="button"
+                      @click="deliveryDiscountType = 'amount'"
+                      :class="deliveryDiscountType === 'amount' ? 'bg-white shadow-sm text-gray-900' : ''"
+                    >C$</button>
+                    <button
+                      type="button"
+                      @click="deliveryDiscountType = 'percent'"
+                      :class="deliveryDiscountType === 'percent' ? 'bg-white shadow-sm text-gray-900' : ''"
+                    >%</button>
+                  </div>
+                  <input
+                    v-model.number="deliveryDiscountValue"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Valor"
+                    class="input flex-1 py-1.5 text-xs"
+                  >
+                </div>
+                <input
+                  v-model="deliveryDiscountReason"
+                  type="text"
+                  placeholder="Motivo del descuento (opcional)"
+                  class="input py-1.5 text-xs"
+                >
+              </div>
+
+              <!-- Totales -->
+              <div class="space-y-1 text-xs">
+                <div class="flex justify-between text-gray-600">
+                  <span>Subtotal</span>
+                  <span class="font-medium tabular-nums">C${{ money(deliveryTotal) }}</span>
+                </div>
+                <div v-if="deliveryDiscountAmount > 0" class="flex justify-between text-amber-700">
+                  <span>Descuento</span>
+                  <span class="font-medium tabular-nums">-C${{ money(deliveryDiscountAmount) }}</span>
+                </div>
+                <div class="flex justify-between pt-1.5 text-base font-extrabold text-gray-900 border-t border-gray-100">
+                  <span>Total</span>
+                  <span class="text-mantis-700 tabular-nums">C${{ money(deliveryTotalWithDiscount) }}</span>
+                </div>
+              </div>
+
+              <!-- Botones -->
+              <div class="flex gap-2 pt-1 pb-safe">
+                <button @click="showModal = false" type="button" class="flex-1 btn btn-secondary">
+                  Cancelar
+                </button>
+                <button @click="submitOrder" type="button" class="btn btn-primary flex-[2]">
+                  <i class="text-xs pi pi-check"></i>
+                  <span>{{ isEditing ? 'Actualizar' : 'Crear Orden' }}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Modal Asignar Rider -->
-    
-    <div
-    v-if="showRiderModal"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-  >
-    <div class="w-full max-w-sm p-5 mx-4 bg-white rounded-lg shadow-lg">
-      <h3 class="mb-4 text-lg font-semibold">Asignar Rider</h3>
-      <label class="block mb-1 text-sm font-medium">Rider</label>
-      <select
-        v-model="riderForm.rider_id"
-        class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring focus:ring-mantis-300"
-      >
-        <option :value="null">Sin asignar</option>
-        <option
-          v-for="r in props.riders"
-          :key="r.id"
-          :value="r.id"
-        >{{ r.name }}</option>
-      </select>
-      <div class="flex justify-end gap-2 mt-6">
-        <button
-          @click="closeRiderModal"
-          class="px-3 py-2 text-sm border rounded hover:bg-gray-50"
-        >Cancelar</button>
-        <button
-          @click="submitRider"
-          class="px-4 py-2 text-sm text-white rounded bg-mantis-600 hover:bg-mantis-700"
-        >Guardar</button>
+    <!-- MODAL DETALLE DE ORDEN -->
+    <div v-if="showOrderModal && selectedOrder" class="modal-backdrop">
+      <div class="modal-sheet w-full max-w-3xl lg:h-auto lg:max-h-[90vh]">
+        <div class="modal-header shrink-0">
+          <div class="flex items-center gap-2.5">
+            <h3 class="modal-title">Orden #{{ selectedOrder.id }}</h3>
+            <span
+              class="px-2.5 py-0.5 text-xs font-semibold border rounded-full"
+              :class="orderStatusMeta(selectedOrder.status).badge"
+            >
+              {{ orderStatusMeta(selectedOrder.status).label }}
+            </span>
+          </div>
+          <button @click="closeOrderModal" class="icon-btn">
+            <i class="text-sm pi pi-times"></i>
+          </button>
+        </div>
+
+        <div class="flex-1 min-h-0 p-4 space-y-4 overflow-y-auto sm:p-5">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+            <!-- Cliente y resumen -->
+            <div class="space-y-3 md:col-span-2">
+              <div class="p-3.5 space-y-2 border border-gray-200 rounded-xl bg-gray-50/60">
+                <p class="text-[11px] font-bold tracking-wider text-gray-400 uppercase">Cliente</p>
+                <p class="font-bold text-gray-900">{{ selectedOrder.customer_name }}</p>
+                <p v-if="selectedOrder.customer_phone" class="text-xs text-gray-600">
+                  <i class="pi pi-phone text-[10px] mr-1"></i>{{ selectedOrder.customer_phone }}
+                </p>
+                <p class="text-xs text-gray-700 whitespace-pre-line">
+                  <i class="pi pi-map-marker text-[10px] mr-1 text-gray-400"></i>{{ selectedOrder.delivery_address }}
+                </p>
+                <div class="pt-2 space-y-1 text-xs text-gray-600 border-t border-gray-200">
+                  <p><span class="text-gray-400">Fiscal:</span> {{ selectedOrder.fiscal_name || '—' }}</p>
+                  <p><span class="text-gray-400">RUC:</span> {{ selectedOrder.fiscal_ruc || '—' }}</p>
+                  <p v-if="selectedOrder.rider_name">
+                    <span class="text-gray-400">Rider:</span> <strong class="text-mantis-700">{{ selectedOrder.rider_name }}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div class="p-3.5 space-y-1.5 border border-gray-200 rounded-xl bg-white">
+                <p class="text-[11px] font-bold tracking-wider text-gray-400 uppercase">Resumen</p>
+                <div class="flex justify-between text-xs text-gray-600">
+                  <span>Subtotal</span>
+                  <span class="font-medium tabular-nums">
+                    C${{ money(selectedOrder.subtotal ?? (selectedOrder.items ? selectedOrder.items.reduce((a, i) => a + (parseFloat(i.price) || 0) * i.quantity, 0) : 0)) }}
+                  </span>
+                </div>
+                <div v-if="selectedOrder.discount_amount && selectedOrder.discount_amount > 0" class="text-xs text-amber-700">
+                  <div class="flex justify-between">
+                    <span>Descuento<span v-if="selectedOrder.discount_type === 'percent'"> ({{ selectedOrder.discount_value }}%)</span></span>
+                    <span class="tabular-nums">-C${{ money(selectedOrder.discount_amount) }}</span>
+                  </div>
+                  <p v-if="selectedOrder.discount_reason" class="text-[11px] text-amber-600 mt-0.5">
+                    Motivo: {{ selectedOrder.discount_reason }}
+                  </p>
+                </div>
+                <div class="flex justify-between pt-1.5 text-base font-extrabold border-t border-gray-100">
+                  <span>Total</span>
+                  <span class="text-mantis-700 tabular-nums">C${{ money(selectedOrder.total) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Lista de productos -->
+            <div class="md:col-span-3">
+              <p class="mb-2 text-[11px] font-bold tracking-wider text-gray-400 uppercase">Productos</p>
+              <div v-if="selectedOrder.items && selectedOrder.items.length" class="overflow-hidden bg-white border border-gray-200 divide-y divide-gray-100 rounded-xl">
+                <div
+                  v-for="(it, idx) in selectedOrder.items"
+                  :key="idx"
+                  class="flex items-center justify-between gap-3 px-3.5 py-2.5 text-sm"
+                >
+                  <div class="min-w-0">
+                    <p class="font-medium text-gray-900 truncate">{{ it.product_name }}</p>
+                    <p class="text-xs text-gray-500 tabular-nums">{{ it.quantity }} × C${{ money(it.price) }}</p>
+                  </div>
+                  <span class="font-bold text-gray-900 tabular-nums shrink-0">
+                    C${{ money(parseFloat(it.price) * it.quantity) }}
+                  </span>
+                </div>
+              </div>
+              <p v-else class="p-6 text-sm text-center text-gray-500 border border-gray-200 rounded-xl">
+                No hay items cargados.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer de acciones -->
+        <div class="flex-wrap justify-between gap-2 modal-footer pb-safe">
+          <div class="flex flex-wrap gap-2">
+            <button @click="startEditOrder" class="text-xs btn btn-outline">
+              <i class="text-xs pi pi-pencil"></i>
+              <span>Editar</span>
+            </button>
+            <button
+              v-if="selectedOrder.status !== 'entregada' && selectedOrder.status !== 'cancelada'"
+              @click="confirmCancelOrder(selectedOrder)"
+              class="text-xs btn btn-danger"
+            >
+              <i class="text-xs pi pi-ban"></i>
+              <span>Anular</span>
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-2 ml-auto">
+            <button @click="openRiderModal(selectedOrder)" class="text-xs btn btn-secondary">
+              <i class="text-xs pi pi-user"></i>
+              <span>{{ selectedOrder.rider_name ? 'Cambiar Rider' : 'Asignar Rider' }}</span>
+            </button>
+            <button
+              v-if="selectedOrder.status === 'asignada'"
+              @click="changeOrderStatus(selectedOrder, 'en_camino')"
+              class="text-xs btn btn-primary"
+            >
+              Marcar En Camino
+            </button>
+            <button
+              v-if="selectedOrder.status === 'en_camino'"
+              @click="changeOrderStatus(selectedOrder, 'entregada')"
+              class="text-xs btn btn-primary"
+            >
+              Marcar Entregada
+            </button>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-  
-  <!-- Modal detalle existente -->
 
+    <!-- MODAL ASIGNAR RIDER (lista táctil) -->
+    <div v-if="showRiderModal" class="modal-backdrop">
+      <div class="w-full max-w-md modal-sheet lg:h-auto">
+        <div class="modal-header">
+          <h3 class="modal-title">Asignar Motorizado</h3>
+          <button @click="closeRiderModal" class="icon-btn">
+            <i class="text-sm pi pi-times"></i>
+          </button>
+        </div>
+
+        <div class="p-4 space-y-2 max-h-[60vh] overflow-y-auto">
+          <button
+            type="button"
+            @click="riderForm.rider_id = null"
+            class="flex items-center justify-between w-full px-3.5 py-2.5 text-sm font-medium border rounded-xl transition"
+            :class="riderForm.rider_id === null ? 'border-mantis-500 bg-mantis-50 text-mantis-800' : 'border-gray-200 hover:bg-gray-50 text-gray-700'"
+          >
+            <span>Sin asignar</span>
+            <i v-if="riderForm.rider_id === null" class="text-xs pi pi-check text-mantis-600"></i>
+          </button>
+
+          <button
+            v-for="r in props.riders"
+            :key="r.id"
+            type="button"
+            @click="riderForm.rider_id = r.id"
+            class="flex items-center justify-between w-full px-3.5 py-2.5 text-sm font-medium border rounded-xl transition"
+            :class="riderForm.rider_id === r.id ? 'border-mantis-500 bg-mantis-50 text-mantis-800' : 'border-gray-200 hover:bg-gray-50 text-gray-800'"
+          >
+            <span class="flex items-center gap-2">
+              <i class="text-xs text-gray-400 pi pi-user"></i>
+              <span>{{ r.name }}</span>
+            </span>
+            <i v-if="riderForm.rider_id === r.id" class="text-xs pi pi-check text-mantis-600"></i>
+          </button>
+        </div>
+
+        <div class="justify-end gap-2 modal-footer pb-safe">
+          <button @click="closeRiderModal" type="button" class="btn btn-secondary">Cancelar</button>
+          <button @click="submitRider" type="button" class="btn btn-primary">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL PRECIO MANUAL -->
+    <div v-if="showCustomModal" class="modal-backdrop">
+      <div class="w-full max-w-sm modal-sheet lg:h-auto">
+        <div class="modal-header">
+          <h3 class="flex items-center gap-2 modal-title">
+            <FontAwesomeIcon :icon="faWeightScale" class="text-mantis-600" />
+            <span>{{ selectedProduct?.name || 'Precio manual' }}</span>
+          </h3>
+          <button @click="showCustomModal = false" class="icon-btn">
+            <i class="text-sm pi pi-times"></i>
+          </button>
+        </div>
+        <div class="p-4 space-y-3">
+          <div>
+            <label class="label">Precio unitario (C$)</label>
+            <input
+              v-model.number="customPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              class="text-lg font-bold input"
+              @keyup.enter="addWithCustomPrice"
+            >
+          </div>
+        </div>
+        <div class="justify-end gap-2 modal-footer pb-safe">
+          <button @click="showCustomModal = false" type="button" class="btn btn-secondary">Cancelar</button>
+          <button @click="addWithCustomPrice" type="button" class="btn btn-primary">Agregar</button>
+        </div>
+      </div>
+    </div>
+  </AppLayout>
 </template>
 
 <script setup>
@@ -685,6 +821,84 @@ const props = defineProps({
   orders: { type: Array, default: () => [] },
   products: { type: Array, default: () => [] },
   riders: { type: Array, default: () => [] }, 
+});
+
+// Filtros y estado de UI responsiva
+const statusFilter = ref('all');
+const deliveryTab = ref('customer'); // 'customer' | 'menu' | 'order'
+const productSearch = ref('');
+const activeCategory = ref('all');
+const showFiscalFields = ref(false);
+
+const money = (value) => (Number(value) || 0).toFixed(2);
+const itemKey = (p, idx) => p.temp_id || (p.is_manual_price ? `m-${p.id}-${idx}` : `p-${p.id}`);
+
+const statusCounts = computed(() => {
+  const list = props.orders || [];
+  return {
+    all: list.length,
+    abierta: list.filter(o => o.status === 'abierta').length,
+    asignada: list.filter(o => o.status === 'asignada').length,
+    en_camino: list.filter(o => o.status === 'en_camino').length,
+  };
+});
+
+const filteredOrders = computed(() => {
+  const list = props.orders || [];
+  if (statusFilter.value === 'all') return list;
+  return list.filter(o => o.status === statusFilter.value);
+});
+
+function orderStatusMeta(status) {
+  switch (status) {
+    case 'abierta':
+      return { label: 'Abierta', badge: 'bg-amber-100 text-amber-800 border-amber-200' };
+    case 'asignada':
+      return { label: 'Asignada', badge: 'bg-mantis-100 text-mantis-800 border-mantis-200' };
+    case 'en_camino':
+      return { label: 'En camino', badge: 'bg-gray-900 text-white border-gray-900' };
+    case 'entregada':
+      return { label: 'Entregada', badge: 'bg-gray-100 text-gray-700 border-gray-200' };
+    case 'cancelada':
+      return { label: 'Cancelada', badge: 'bg-red-100 text-red-700 border-red-200' };
+    default:
+      return { label: (status || 'Pendiente').replace('_', ' '), badge: 'bg-gray-100 text-gray-700 border-gray-200' };
+  }
+}
+
+const deliveryCategories = computed(() => Object.keys(groupedProducts.value || {}));
+
+const visibleDeliveryCatalog = computed(() => {
+  const groups = groupedProducts.value || {};
+  const q = productSearch.value.trim().toLowerCase();
+  const cats = activeCategory.value === 'all'
+    ? Object.keys(groups)
+    : (groups[activeCategory.value] ? [activeCategory.value] : []);
+
+  return cats
+    .map(category => ({
+      category,
+      items: (groups[category] || []).filter(item =>
+        !q || (item.name || '').toLowerCase().includes(q)
+      ),
+    }))
+    .filter(g => g.items.length > 0);
+});
+
+const pendingUnits = computed(() =>
+  selectedProducts.value.reduce((sum, p) => sum + (Number(p.quantity) || 0), 0)
+);
+
+const qtyInDeliveryOrder = computed(() => {
+  const map = {};
+  for (const p of selectedProducts.value) {
+    map[p.id] = (map[p.id] || 0) + (Number(p.quantity) || 0);
+  }
+  return map;
+});
+
+const deliveryDiscountAmount = computed(() => {
+  return calculateDiscountAmount(deliveryTotal.value, appliedDeliveryDiscount.value);
 });
 
 // Modal detalle de orden
@@ -776,6 +990,15 @@ function openModal() {
     paymentMethod.value = 'null';
     cashAmount.value = 0;
     deliveryNotes.value = '';
+    toggleDeliveryDiscount.value = false;
+    deliveryDiscountType.value = 'amount';
+    deliveryDiscountValue.value = 0;
+    deliveryDiscountReason.value = '';
+    appliedDeliveryDiscount.value = null;
+    deliveryTab.value = 'customer';
+    productSearch.value = '';
+    activeCategory.value = 'all';
+    showFiscalFields.value = false;
  
     showModal.value = true;
 }
@@ -840,15 +1063,33 @@ function addProduct(product) {
   }
 }
 
+function findSelectedIndex(product) {
+  const exactIdx = selectedProducts.value.indexOf(product);
+  if (exactIdx !== -1) return exactIdx;
+  return selectedProducts.value.findIndex(p =>
+    (p.temp_id && p.temp_id === product.temp_id) ||
+    (!p.temp_id && !product.temp_id && p.id === product.id)
+  );
+}
+
 function increaseQuantity(product) {
-  const existing = selectedProducts.value.find(p => p.id === product.id);
-  if (existing) {
-    existing.quantity += 1;
+  const index = findSelectedIndex(product);
+  if (index !== -1) {
+    if (selectedProducts.value[index].is_active === false) {
+      toast.add({
+        severity: 'warn',
+        summary: 'Producto inactivo',
+        detail: `No se pueden agregar más unidades de "${selectedProducts.value[index].name}" porque ya no está activo.`,
+        life: 3500
+      });
+      return;
+    }
+    selectedProducts.value[index].quantity += 1;
   }
 }
 
 function decreaseQuantity(product) {
-  const index = selectedProducts.value.findIndex(p => (p.temp_id && p.temp_id === product.temp_id) || (!p.temp_id && p.id === product.id));
+  const index = findSelectedIndex(product);
   
   if (index !== -1) {
     if (selectedProducts.value[index].quantity > 1) {
@@ -860,7 +1101,7 @@ function decreaseQuantity(product) {
 }
 
 function removeProduct(product) {
-  const index = selectedProducts.value.findIndex(p => (p.temp_id && p.temp_id === product.temp_id) || (!p.temp_id && p.id === product.id));
+  const index = findSelectedIndex(product);
   if (index !== -1) {
     selectedProducts.value.splice(index, 1);
   }
@@ -884,9 +1125,9 @@ function calculateDiscountAmount(total, discount) {
     return 0;
   }
   if (discount.type === 'percent') {
-    return (total * discount.value) / 100;
+    return (total * Math.min(discount.value, 100)) / 100;
   }
-  return discount.value;
+  return Math.min(discount.value, total);
 }
 
 function applyDiscountDelivery() {
@@ -904,13 +1145,22 @@ function applyDiscountDelivery() {
   toast.add({ severity: 'success', summary: 'Éxito', detail: 'Descuento de delivery aplicado.', life: 3000 });
 }
 
-watch(toggleDeliveryDiscount, (newVal) => {
-  if (!newVal) {
+watch([toggleDeliveryDiscount, deliveryDiscountType, deliveryDiscountValue, deliveryDiscountReason], ([enabled]) => {
+  if (!enabled) {
     appliedDeliveryDiscount.value = null;
     deliveryDiscountValue.value = 0;
     deliveryDiscountReason.value = '';
-    toast.add({ severity: 'info', summary: 'Info', detail: 'Descuento de delivery eliminado.', life: 3000 });
+    return;
   }
+  if (!deliveryDiscountType.value) deliveryDiscountType.value = 'amount';
+  const val = Number(deliveryDiscountValue.value) || 0;
+  appliedDeliveryDiscount.value = val > 0
+    ? {
+        type: deliveryDiscountType.value,
+        value: val,
+        reason: deliveryDiscountReason.value || '',
+      }
+    : null;
 });
 
 function openCustomPriceModal(product) {
@@ -942,7 +1192,7 @@ function startEditOrder(){
   if(!selectedOrder.value) return;
   const o = selectedOrder.value;
   customer.value = {
-    id: null,
+    id: o.customer_id || null,
     name: o.customer_name || '',
     phone: o.customer_phone || '',
     fiscal_name: o.fiscal_name || '',
@@ -956,7 +1206,8 @@ function startEditOrder(){
     price: parseFloat(it.price),
     quantity: it.quantity,
     is_generic: false,
-    is_manual_price: false
+    is_manual_price: false,
+    is_active: it.is_active ?? true
   }));
 
   // cargar descuentos existentes (ya estaba)
@@ -978,6 +1229,10 @@ function startEditOrder(){
   paymentMethod.value = o.payment_method || 'cash';
   cashAmount.value = parseFloat(o.cash_amount || 0);
   deliveryNotes.value = o.delivery_notes || '';
+  showFiscalFields.value = Boolean(o.fiscal_name || o.fiscal_ruc);
+  deliveryTab.value = 'order';
+  productSearch.value = '';
+  activeCategory.value = 'all';
 
   isEditing.value = true;
   editingOrderId.value = o.id;
@@ -1048,7 +1303,8 @@ function submitOrder() {
     setTimeout(()=>location.reload(),800);
   }).catch(error => {
     console.error('Error guardando la orden:', error.response?.data || error);
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Hubo un error al guardar la orden. Revise los datos.', life: 4000 });
+    const msg = error.response?.data?.errors?.products?.[0] || error.response?.data?.message || 'Hubo un error al guardar la orden. Revise los datos.';
+    toast.add({ severity: 'error', summary: 'Error', detail: msg, life: 4000 });
   });
 }
 
@@ -1170,8 +1426,8 @@ function generateRiderPaper(order) {
 
   const itemsHTML = items.map(i => `
     <tr>
-      <td style="padding:4px 6px; width:30px;">${i.qty}</td>
-      <td style="padding:4px 6px;">${i.name}</td>
+      <td style="padding:4px 6px; width:30px;">${escapeHtml(i.qty)}</td>
+      <td style="padding:4px 6px;">${escapeHtml(i.name)}</td>
       <td style="padding:4px 6px; text-align:right; width:56px;">${i.price.toFixed(2)}</td>
       <td style="padding:4px 6px; text-align:right; width:64px;">${i.lineSubtotal.toFixed(2)}</td>
     </tr>
@@ -1209,14 +1465,14 @@ function generateRiderPaper(order) {
         <div class="mt-2 center small">Papel Delivery</div>
         <hr>
 
-        <p></strong>Fecha:</strong> ${date}</p>
-        <p><strong>Tipo:</strong> ${tipoOrdenTexto}</p>
+        <p><strong>Fecha:</strong> ${escapeHtml(date)}</p>
+        <p><strong>Tipo:</strong> ${escapeHtml(tipoOrdenTexto)}</p>
 
-        ${customerName ? `<p><strong>Cliente:</strong> ${customerName}</p>` : ''}
-        ${phone ? `<p><strong>Teléfono:</strong> ${phone}</p>` : ''}
-        ${address ? `<p><strong>Dirección:</strong> ${address}</p>` : ''}
-        ${indicationsText ? `<p><strong>Indicaciones:</strong> ${indicationsText}</p>` : ''}
-        <p><strong>Método de Pago:</strong> ${paymentMethod}</p>
+        ${customerName ? `<p><strong>Cliente:</strong> ${escapeHtml(customerName)}</p>` : ''}
+        ${phone ? `<p><strong>Teléfono:</strong> ${escapeHtml(phone)}</p>` : ''}
+        ${address ? `<p><strong>Dirección:</strong> ${escapeHtml(address)}</p>` : ''}
+        ${indicationsText ? `<p><strong>Indicaciones:</strong> ${escapeHtml(indicationsText)}</p>` : ''}
+        <p><strong>Método de Pago:</strong> ${escapeHtml(paymentMethod)}</p>
         ${order.payment_method === 'cash' ? `<p><strong>Efectivo:</strong> C$${Number(cash_amount).toFixed(2)}</p>` : ''}
 
         <table>
@@ -1239,16 +1495,16 @@ function generateRiderPaper(order) {
           </div>
           ${discountAmount > 0 ? `
             <div style="display:flex; justify-content:space-between;">
-              <div>Descuento ${discountLabel}:</div><div>-C$${Number(discountAmount).toFixed(2)}</div>
+              <div>Descuento ${escapeHtml(discountLabel)}:</div><div>-C$${Number(discountAmount).toFixed(2)}</div>
             </div>
-            ${order.discount_reason ? `<div style="display:flex; justify-content:space-between; font-size: 11px; color: #555;"><div>&nbsp;&nbsp;↳ Razón:</div><div style="text-align:right;">${order.discount_reason}</div></div>` : ''}
+            ${order.discount_reason ? `<div style="display:flex; justify-content:space-between; font-size: 11px; color: #555;"><div>&nbsp;&nbsp;↳ Razón:</div><div style="text-align:right;">${escapeHtml(order.discount_reason)}</div></div>` : ''}
           ` : ''}
           <div style="display:flex; justify-content:space-between; margin-top:6px; font-weight:800;">
             <div>Total:</div><div>C$${Number(total).toFixed(2)}</div>
           </div>
         </div>
 
-        <div class="footer">Asignado a Rider: ${assignedRider}</div>
+        <div class="footer">Asignado a Rider: ${escapeHtml(assignedRider)}</div>
         <div style="margin-top: 50px;">.</div>
 
         <script>
@@ -1399,13 +1655,15 @@ async function generateDeliveryInvoice(order) {
 
   try {
     const res = await axios.post(route('invoices.delivery.store'), payload);
+    const resolvedInvoiceNumber = res.data?.invoice_number || nextInvoiceNumber.value;
+    nextInvoiceNumber.value = '';
 
     // Si el backend devuelve la factura completa la usamos
     let invoiceObj = res.data?.invoice ?? res.data;
     if (!invoiceObj || !invoiceObj.items) {
       // Si no devuelve, construimos la factura desde la orden (fallback)
       invoiceObj = {
-        invoice_number: nextInvoiceNumber.value,
+        invoice_number: resolvedInvoiceNumber,
         created_at: new Date().toISOString(),
         order_id: sourceOrder.id,
         fiscal_name: fiscal_name_to_send,

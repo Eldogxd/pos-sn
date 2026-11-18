@@ -56,8 +56,12 @@ class UserController extends Controller
         return redirect()->back();
     }
 
-    public function destroy (User $user)
+    public function destroy(Request $request, User $user)
     {
+        if ($request->user() && $request->user()->id === $user->id) {
+            return redirect()->back()->withErrors(['error' => 'No puedes eliminar tu propio usuario en sesión.']);
+        }
+
         $user->delete();
         return redirect()->back();
     }

@@ -16,36 +16,34 @@ class TableController extends Controller
         ]);
     }
 
-
-
-    public function create()
-    {
-        // Logic to show form for creating a new table
-    }
-
     public function store(Request $request)
     {
         $request->validate([
-            'number' => 'required|string',
-            'status' => 'required|in:Libre,Ocupada',
+            'number' => 'required|string|max:50',
+            'status' => 'required|in:libre,ocupada,Libre,Ocupada',
         ]);
 
         Table::create([
             'number' => $request->number,
-            'status' => $request->status,
+            'status' => strtolower($request->status),
         ]);
 
         return redirect()->back();
     }
-    
+
     public function update(Request $request, Table $table)
     {
         $request->validate([
-            'number' => 'nullable|string',
-            'status' => 'nullable|in:Libre,Ocupada',
+            'number' => 'nullable|string|max:50',
+            'status' => 'nullable|in:libre,ocupada,Libre,Ocupada',
         ]);
 
-        $table->update($request->only('number', 'status'));
+        $data = array_filter([
+            'number' => $request->number,
+            'status' => $request->filled('status') ? strtolower($request->status) : null,
+        ], fn ($v) => !is_null($v));
+
+        $table->update($data);
         return redirect()->back();
     }
 
@@ -54,5 +52,4 @@ class TableController extends Controller
         $table->delete();
         return redirect()->back();
     }
-   
 }

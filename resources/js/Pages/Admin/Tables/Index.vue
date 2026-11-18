@@ -1,86 +1,146 @@
-
 <template>
-    <AppLayout title="Mesas">
-        <template #header>
-           <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-              Mesas
-            </h2>
-             <NavLayout />
-            </div>
-        </template>
+  <AppLayout title="Mesas">
+    <template #header>
+      <NavLayout />
+    </template>
 
-        <div class="p-10">
-            <h1 class="mb-4 text-2xl font-bold">Mesas</h1>
+    <div class="p-3 mx-auto space-y-4 max-w-5xl sm:p-6">
+      <!-- Encabezado -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900 sm:text-2xl">Mesas</h1>
+          <p class="text-xs text-gray-500">Total registradas: <strong class="text-gray-800">{{ tables.length }}</strong></p>
+        </div>
+        <button @click="openCreateModal" class="btn btn-primary w-full sm:w-auto">
+          <i class="pi pi-plus text-xs"></i>
+          <span>Nueva Mesa</span>
+        </button>
+      </div>
 
-            <button @click="openCreateModal" class="px-4 py-2 mb-4 text-white rounded bg-mantis-500 hover:bg-mantis-600">
-            Crear Mesa
-            </button>    
-
-            <table class="w-full border">
-               <thead>
-                <tr class="text-left bg-gray-100">
-                    <th class="p-2 border">Número de Mesa</th>
-                    <th class="p-2 border">Estado</th>
-                    <th class="p-2 border">Acciones</th>
-                </tr>
-               </thead>
-                <tbody>
-                    <tr v-for="table in tables" :key="table.id" class="hover:bg-gray-50">
-                        <td class="p-2 border">{{ table.number }}</td>
-                        <td class="p-2 border">{{ table.status }}</td>
-                        <td class="p-2 border">
-                            <button @click="openEditModal(table)" class="mr-2 text-mantis-400">Editar</button>
-                            <button @click="deleteTable(table.id)" class="text-red-400">Eliminar</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <!--Modal-->
-            <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-                <div class="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
-                    <h2 class="mb-4 text-xl font-bold">{{ editMode ? 'Editar Mesa':'Crear Mesa' }}</h2>
-
-                    <form @submit.prevent="submit">
-                        <div class="mb-4">
-                            <label class="block mb-1">Número de Mesa</label>
-                            <input v-model="form.number" type="text" class="w-full p-2 border rounded" />
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="block mb-1">Estado</label>
-                            <select v-model="form.status" class="w-full p-2 border rounded" >
-                                <option value="Libre">Libre</option>
-                                <option value="Ocupada">Ocupada</option>
-                            </select>
-                        </div>
-
-                        <div class="flex gap-2 justifyend">
-                             <button @click="closeModal" type="button" class="px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600">
-                                Cancelar
-                            </button>
-                            <button type="submit" class="px-4 py-2 text-white rounded bg-mantis-500 hover:bg-mantis-600">
-                                {{ editMode ? 'Actualizar' : 'Crear' }}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+      <!-- Vista Móvil: Tarjetas -->
+      <div class="space-y-2.5 md:hidden">
+        <div v-if="tables.length === 0" class="p-8 text-center text-sm text-gray-500 card">
+          No hay mesas registradas.
         </div>
 
+        <div
+          v-for="table in tables"
+          :key="`m-${table.id}`"
+          class="flex items-center justify-between gap-3 p-3.5 card"
+        >
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="text-base font-bold text-gray-900">Mesa {{ table.number }}</span>
+              <span
+                class="px-2 py-0.5 text-[11px] font-semibold rounded-full capitalize"
+                :class="(table.status || '').toLowerCase() === 'libre' ? 'bg-mantis-100 text-mantis-800' : 'bg-amber-100 text-amber-800'"
+              >
+                {{ table.status }}
+              </span>
+            </div>
+            <p class="text-xs text-gray-400 mt-0.5">ID #{{ table.id }}</p>
+          </div>
 
- <div v-if="Object.keys(form.errors).length" class="mb-4 text-red-500">
-  <ul>
-    <li v-for="(error, field) in form.errors" :key="field">{{ error }}</li>
-  </ul>
-</div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button @click="openEditModal(table)" class="btn btn-outline py-1.5 px-3 text-xs">
+              <i class="pi pi-pencil text-xs"></i>
+              <span>Editar</span>
+            </button>
+            <button @click="deleteTable(table.id)" class="btn btn-danger py-1.5 px-2.5 text-xs" title="Eliminar">
+              <i class="pi pi-trash text-xs"></i>
+            </button>
+          </div>
+        </div>
+      </div>
 
+      <!-- Vista Desktop: Tabla -->
+      <div class="hidden overflow-hidden card md:block">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm text-gray-700">
+            <thead class="text-xs font-semibold tracking-wide text-gray-600 uppercase border-b border-gray-200 bg-gray-50">
+              <tr>
+                <th class="px-5 py-3.5 text-left">Número</th>
+                <th class="px-5 py-3.5 text-center">Estado</th>
+                <th class="px-5 py-3.5 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr v-for="table in tables" :key="table.id" class="transition hover:bg-gray-50/70">
+                <td class="px-5 py-3.5 font-semibold text-gray-900">Mesa {{ table.number }}</td>
+                <td class="px-5 py-3.5 text-center">
+                  <span
+                    class="inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full capitalize"
+                    :class="(table.status || '').toLowerCase() === 'libre' ? 'bg-mantis-100 text-mantis-800' : 'bg-amber-100 text-amber-800'"
+                  >
+                    {{ table.status }}
+                  </span>
+                </td>
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center justify-center gap-2">
+                    <button @click="openEditModal(table)" class="btn btn-outline py-1.5 px-3 text-xs">
+                      <i class="pi pi-pencil text-xs"></i>
+                      <span>Editar</span>
+                    </button>
+                    <button @click="deleteTable(table.id)" class="btn btn-danger py-1.5 px-3 text-xs">
+                      <i class="pi pi-trash text-xs"></i>
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="tables.length === 0">
+                <td colspan="3" class="px-6 py-10 text-center text-gray-500">No hay mesas registradas.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
-    </AppLayout>
+    <!-- Modal Crear / Editar Mesa -->
+    <div v-if="showModal" class="modal-backdrop">
+      <div class="modal-sheet w-full max-w-md lg:h-auto">
+        <div class="modal-header shrink-0">
+          <h2 class="modal-title">{{ editMode ? 'Editar Mesa' : 'Nueva Mesa' }}</h2>
+          <button @click="closeModal" type="button" class="icon-btn">
+            <i class="pi pi-times text-sm"></i>
+          </button>
+        </div>
+
+        <form @submit.prevent="submit" class="flex flex-col flex-1 min-h-0">
+          <div class="p-4 space-y-4 overflow-y-auto sm:p-5">
+            <div>
+              <label class="label">Número / Identificador</label>
+              <input v-model="form.number" type="text" class="input" placeholder="Ej: 1, Barra, Terraza" />
+            </div>
+
+            <div>
+              <label class="label">Estado</label>
+              <select v-model="form.status" class="input">
+                <option value="libre">Libre</option>
+                <option value="ocupada">Ocupada</option>
+              </select>
+            </div>
+
+            <div v-if="Object.keys(form.errors).length" class="p-3 text-xs text-red-700 border border-red-200 rounded-xl bg-red-50">
+              <ul class="space-y-0.5 list-disc list-inside">
+                <li v-for="(error, field) in form.errors" :key="field">{{ error }}</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="modal-footer justify-end gap-2 pb-safe shrink-0">
+            <button @click="closeModal" type="button" class="btn btn-secondary">Cancelar</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="pi pi-check text-xs"></i>
+              <span>{{ editMode ? 'Actualizar' : 'Guardar' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </AppLayout>
 </template>
-
-
-
 
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -112,7 +172,7 @@ const openEditModal = (table) => {
     editMode.value = true
     editingTableId.value = table.id
     form.number = table.number
-    form.status = table.status
+    form.status = (table.status || 'libre').toLowerCase()
     showModal.value = true
 }
 

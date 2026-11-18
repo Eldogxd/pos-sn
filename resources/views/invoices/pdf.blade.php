@@ -118,5 +118,5 @@
 </html>
 
 <script>
- window.onload = () => windows.print();
+ window.onload = () => window.print();
 </script>

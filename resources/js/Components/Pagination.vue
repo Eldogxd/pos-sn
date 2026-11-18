@@ -21,11 +21,11 @@ defineProps({
             />
 
             <!-- Enlace de página normal -->
-            <Link
+                <Link
                 v-else
                 :href="link.url"
-                class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                :class="{ 'bg-blue-500 text-white hover:bg-blue-600': link.active }"
+                class="px-3.5 py-2 text-sm font-medium border rounded-xl transition hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-mantis-400"
+                :class="link.active ? 'bg-mantis-600 border-mantis-600 text-white hover:bg-mantis-700' : 'bg-white border-gray-200 text-gray-700'"
                 v-html="link.label"
                 preserve-scroll
             />

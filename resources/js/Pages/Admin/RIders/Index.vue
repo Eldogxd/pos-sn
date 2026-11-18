@@ -1,104 +1,143 @@
 <template>
   <AppLayout title="Motorizados">
     <template #header>
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-              Motorizados
-            </h2>
-             <NavLayout />
-            </div>
+      <NavLayout />
     </template>
 
-    <div class="p-4 md:p-10">
-      <h1 class="mb-4 text-2xl font-bold">Motorizados</h1>
+    <div class="p-3 mx-auto space-y-4 max-w-5xl sm:p-6">
+      <!-- Encabezado -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900 sm:text-2xl">Motorizados</h1>
+          <p class="text-xs text-gray-500">Total registrados: <strong class="text-gray-800">{{ props.riders.length }}</strong></p>
+        </div>
+        <button @click="openCreateModal" class="btn btn-primary w-full sm:w-auto">
+          <i class="pi pi-plus text-xs"></i>
+          <span>Nuevo Motorizado</span>
+        </button>
+      </div>
 
-      <button @click="openCreateModal" class="w-full px-4 py-2 mb-4 text-white rounded md:w-auto bg-mantis-500 hover:bg-mantis-600">
-        Crear Motorizado
-      </button>
+      <!-- Vista Móvil: Tarjetas -->
+      <div class="space-y-2.5 md:hidden">
+        <div v-if="props.riders.length === 0" class="p-8 text-center text-sm text-gray-500 card">
+          No hay motorizados registrados.
+        </div>
 
-      <!-- Desktop / Tablet Table -->
-      <div class="hidden w-full md:block">
-        <div class="overflow-x-auto border rounded">
-          <table class="w-full text-sm border-none">
-            <thead>
-              <tr class="text-left bg-gray-100">
-                <th class="p-2 border">Nombre</th>
-                <th class="p-2 border">Estado</th>
-                <th class="p-2 border">Acciones</th>
+        <div
+          v-for="rider in props.riders"
+          :key="`m-${rider.id}`"
+          class="flex items-center justify-between gap-3 p-3.5 card"
+        >
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-gray-900 truncate">{{ rider.name }}</span>
+              <span
+                class="px-2 py-0.5 text-[11px] font-semibold rounded-full shrink-0"
+                :class="rider.status === 'active' ? 'bg-mantis-100 text-mantis-800' : 'bg-red-100 text-red-700'"
+              >
+                {{ rider.status === 'active' ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            <p class="text-xs text-gray-400 mt-0.5">ID #{{ rider.id }}</p>
+          </div>
+
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button @click="openEditModal(rider)" class="btn btn-outline py-1.5 px-3 text-xs">
+              <i class="pi pi-pencil text-xs"></i>
+              <span>Editar</span>
+            </button>
+            <button @click="deleteRider(rider.id)" class="btn btn-danger py-1.5 px-2.5 text-xs" title="Eliminar">
+              <i class="pi pi-trash text-xs"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista Desktop: Tabla -->
+      <div class="hidden overflow-hidden card md:block">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm text-gray-700">
+            <thead class="text-xs font-semibold tracking-wide text-gray-600 uppercase border-b border-gray-200 bg-gray-50">
+              <tr>
+                <th class="px-5 py-3.5 text-left">Nombre</th>
+                <th class="px-5 py-3.5 text-center">Estado</th>
+                <th class="px-5 py-3.5 text-center">Acciones</th>
               </tr>
             </thead>
-            <tbody>
-              <tr v-for="rider in riders" :key="rider.id" class="transition-colors hover:bg-gray-50">
-                <td class="p-2 border">{{ rider.name }}</td>
-                <td class="p-2 border">
-                  <span :class="rider.status === 'active' ? 'text-green-600' : 'text-red-500'">
+            <tbody class="divide-y divide-gray-100">
+              <tr v-for="rider in props.riders" :key="rider.id" class="transition hover:bg-gray-50/70">
+                <td class="px-5 py-3.5 font-semibold text-gray-900">{{ rider.name }}</td>
+                <td class="px-5 py-3.5 text-center">
+                  <span
+                    class="inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full"
+                    :class="rider.status === 'active' ? 'bg-mantis-100 text-mantis-800' : 'bg-red-100 text-red-700'"
+                  >
                     {{ rider.status === 'active' ? 'Activo' : 'Inactivo' }}
                   </span>
                 </td>
-                <td class="p-2 border">
-                  <div class="flex flex-wrap gap-2">
-                    <button @click="openEditModal(rider)" class="text-mantis-500 hover:underline">Editar</button>
-                    <button @click="deleteRider(rider.id)" class="text-red-500 hover:underline">Eliminar</button>
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center justify-center gap-2">
+                    <button @click="openEditModal(rider)" class="btn btn-outline py-1.5 px-3 text-xs">
+                      <i class="pi pi-pencil text-xs"></i>
+                      <span>Editar</span>
+                    </button>
+                    <button @click="deleteRider(rider.id)" class="btn btn-danger py-1.5 px-3 text-xs">
+                      <i class="pi pi-trash text-xs"></i>
+                      <span>Eliminar</span>
+                    </button>
                   </div>
                 </td>
+              </tr>
+              <tr v-if="props.riders.length === 0">
+                <td colspan="3" class="px-6 py-10 text-center text-gray-500">No hay motorizados registrados.</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
+    </div>
 
-      <!-- Mobile Cards -->
-      <div class="space-y-3 md:hidden">
-        <div v-for="rider in riders" :key="rider.id" class="p-4 border rounded shadow-sm bg-white/70 backdrop-blur-sm">
-          <div class="flex items-start justify-between">
-            <div>
-              <p class="text-base font-semibold text-gray-800">{{ rider.name }}</p>
-              <p class="text-xs" :class="rider.status === 'active' ? 'text-green-600' : 'text-red-500'">
-                {{ rider.status === 'active' ? 'Activo' : 'Inactivo' }}
-              </p>
-            </div>
-            <span class="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded">ID: {{ rider.id }}</span>
-          </div>
-          <div class="flex gap-4 mt-3 text-sm">
-            <button @click="openEditModal(rider)" class="font-medium text-mantis-600">Editar</button>
-            <button @click="deleteRider(rider.id)" class="font-medium text-red-500">Eliminar</button>
-          </div>
+    <!-- Modal Crear / Editar Motorizado -->
+    <div v-if="showModal" class="modal-backdrop">
+      <div class="modal-sheet w-full max-w-md lg:h-auto">
+        <div class="modal-header shrink-0">
+          <h2 class="modal-title">{{ editMode ? 'Editar Motorizado' : 'Nuevo Motorizado' }}</h2>
+          <button @click="closeModal" type="button" class="icon-btn">
+            <i class="pi pi-times text-sm"></i>
+          </button>
         </div>
-      </div>
 
-      <!-- Modal -->
-      <div v-if="showModal" class="fixed inset-0 z-50 flex items-start justify-center pt-10 overflow-y-auto bg-black bg-opacity-40">
-        <div class="w-full max-w-md p-6 mx-4 bg-white rounded-lg shadow-md sm:mx-auto">
-          <h2 class="mb-4 text-xl font-bold">{{ editMode ? 'Editar Motorizado' : 'Crear Motorizado' }}</h2>
-
-          <form @submit.prevent="submit">
-            <div class="mb-4">
-              <label class="block mb-1">Nombre</label>
-              <input v-model="form.name" type="text" class="w-full p-2 border rounded" />
+        <form @submit.prevent="submit" class="flex flex-col flex-1 min-h-0">
+          <div class="p-4 space-y-4 overflow-y-auto sm:p-5">
+            <div>
+              <label class="label">Nombre</label>
+              <input v-model="form.name" type="text" class="input" placeholder="Nombre del motorizado" />
             </div>
 
-            <div class="mb-4">
-              <label class="block mb-1">Estado</label>
-              <select v-model="form.status" class="w-full p-2 border rounded">
+            <div>
+              <label class="label">Estado</label>
+              <select v-model="form.status" class="input">
                 <option value="active">Activo</option>
                 <option value="inactive">Inactivo</option>
               </select>
             </div>
 
-            <div class="flex flex-col justify-end gap-2 sm:flex-row">
-              <button type="button" @click="closeModal" class="w-full px-4 py-2 bg-gray-200 rounded sm:w-auto hover:bg-gray-300">Cancelar</button>
-              <button type="submit" class="w-full px-4 py-2 text-white rounded sm:w-auto bg-mantis-500 hover:bg-mantis-600">
-                {{ editMode ? 'Actualizar' : 'Guardar' }}
-              </button>
+            <div v-if="Object.keys(form.errors).length" class="p-3 text-xs text-red-700 border border-red-200 rounded-xl bg-red-50">
+              <ul class="space-y-0.5 list-disc list-inside">
+                <li v-for="(error, field) in form.errors" :key="field">{{ error }}</li>
+              </ul>
             </div>
-          </form>
-        </div>
+          </div>
+
+          <div class="modal-footer justify-end gap-2 pb-safe shrink-0">
+            <button type="button" @click="closeModal" class="btn btn-secondary">Cancelar</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="pi pi-check text-xs"></i>
+              <span>{{ editMode ? 'Actualizar' : 'Guardar' }}</span>
+            </button>
+          </div>
+        </form>
       </div>
-    </div>
-    <div v-if="Object.keys(form.errors).length" class="mb-4 text-red-500">
-      <ul>
-        <li v-for="(error, field) in form.errors" :key="field">{{ error }}</li>
-      </ul>
     </div>
   </AppLayout>
 </template>

@@ -1,123 +1,169 @@
-
-
 <template>
-    <AppLayout title="Usuarios">
-        <template #header>
-           <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-              Usuarios
-            </h2>
-             <NavLayout />
+  <AppLayout title="Usuarios">
+    <template #header>
+      <NavLayout />
+    </template>
+
+    <div class="p-3 mx-auto space-y-4 max-w-6xl sm:p-6">
+      <!-- Encabezado -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900 sm:text-2xl">Usuarios</h1>
+          <p class="text-xs text-gray-500">Total registrados: <strong class="text-gray-800">{{ users.length }}</strong></p>
+        </div>
+        <button @click="openCreateModal" class="btn btn-primary w-full sm:w-auto">
+          <i class="pi pi-plus text-xs"></i>
+          <span>Nuevo Usuario</span>
+        </button>
+      </div>
+
+      <!-- Vista Móvil: Tarjetas -->
+      <div class="space-y-2.5 md:hidden">
+        <div v-if="users.length === 0" class="p-8 text-center text-sm text-gray-500 card">
+          No hay usuarios registrados.
+        </div>
+
+        <div
+          v-for="user in users"
+          :key="`m-${user.id}`"
+          class="p-3.5 card space-y-2.5"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <p class="font-bold text-gray-900 truncate">{{ user.name }}</p>
+              <p class="text-xs text-gray-500 truncate">{{ user.email }}</p>
             </div>
-        </template>
+            <span
+              class="px-2.5 py-0.5 text-[11px] font-semibold rounded-full capitalize shrink-0"
+              :class="user.role === 'admin' ? 'bg-gray-900 text-white' : (user.role === 'cajero' ? 'bg-mantis-100 text-mantis-800' : (user.role === 'delivery' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-700'))"
+            >
+              {{ user.role }}
+            </span>
+          </div>
 
-        <div class="p-4 md:p-10">
-    <h1 class="mb-4 text-2xl font-bold">Usuarios</h1>
+          <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+            <button @click="openEditModal(user)" class="btn btn-outline flex-1 py-1.5 text-xs">
+              <i class="pi pi-pencil text-xs"></i>
+              <span>Editar</span>
+            </button>
+            <button @click="deleteUser(user.id)" class="btn btn-danger py-1.5 px-3 text-xs" title="Eliminar">
+              <i class="pi pi-trash text-xs"></i>
+            </button>
+          </div>
+        </div>
+      </div>
 
-    <button @click="openCreateModal" class="w-full px-4 py-2 mb-4 text-white rounded md:w-auto bg-mantis-500 hover:bg-mantis-600">
-      Crear Usuario
-    </button>
-
-    <!-- Desktop / Tablet Table -->
-    <div class="hidden w-full md:block">
-      <div class="overflow-x-auto border rounded">
-        <table class="w-full text-sm border-none">
-          <thead>
-            <tr class="text-left bg-gray-100">
-              <th class="p-2 border">Nombre</th>
-              <th class="p-2 border">Email</th>
-              <th class="p-2 border">Rol</th>
-              <th class="p-2 border">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="user in users" :key="user.id" class="transition-colors hover:bg-gray-50">
-              <td class="p-2 border">{{ user.name }}</td>
-              <td class="p-2 border">{{ user.email }}</td>
-              <td class="p-2 border">{{ user.role }}</td>
-              <td class="p-2 border">
-                <div class="flex flex-wrap gap-2">
-                  <button @click="openEditModal(user)" class="text-mantis-500 hover:underline">Editar</button>
-                  <button @click="deleteUser(user.id)" class="text-red-500 hover:underline">Eliminar</button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Vista Desktop: Tabla -->
+      <div class="hidden overflow-hidden card md:block">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm text-gray-700">
+            <thead class="text-xs font-semibold tracking-wide text-gray-600 uppercase border-b border-gray-200 bg-gray-50">
+              <tr>
+                <th class="px-5 py-3.5 text-left">Nombre</th>
+                <th class="px-5 py-3.5 text-left">Correo</th>
+                <th class="px-5 py-3.5 text-center">Rol</th>
+                <th class="px-5 py-3.5 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr v-for="user in users" :key="user.id" class="transition hover:bg-gray-50/70">
+                <td class="px-5 py-3.5 font-semibold text-gray-900">{{ user.name }}</td>
+                <td class="px-5 py-3.5 text-gray-600">{{ user.email }}</td>
+                <td class="px-5 py-3.5 text-center">
+                  <span
+                    class="inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full capitalize"
+                    :class="user.role === 'admin' ? 'bg-gray-900 text-white' : (user.role === 'cajero' ? 'bg-mantis-100 text-mantis-800' : (user.role === 'delivery' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-700'))"
+                  >
+                    {{ user.role }}
+                  </span>
+                </td>
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center justify-center gap-2">
+                    <button @click="openEditModal(user)" class="btn btn-outline py-1.5 px-3 text-xs">
+                      <i class="pi pi-pencil text-xs"></i>
+                      <span>Editar</span>
+                    </button>
+                    <button @click="deleteUser(user.id)" class="btn btn-danger py-1.5 px-3 text-xs">
+                      <i class="pi pi-trash text-xs"></i>
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="users.length === 0">
+                <td colspan="4" class="px-6 py-10 text-center text-gray-500">No hay usuarios registrados.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <!-- Mobile Cards -->
-    <div class="space-y-3 md:hidden">
-      <div v-for="user in users" :key="user.id" class="p-4 border rounded shadow-sm bg-white/70 backdrop-blur-sm">
-        <div class="flex items-start justify-between">
-          <div>
-            <p class="text-base font-semibold text-gray-800">{{ user.name }}</p>
-            <p class="text-xs text-gray-500">{{ user.email }}</p>
-          </div>
-          <span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">{{ user.role }}</span>
+    <!-- Modal Crear / Editar Usuario -->
+    <div v-if="showModal" class="modal-backdrop">
+      <div class="modal-sheet w-full max-w-lg lg:h-auto">
+        <div class="modal-header shrink-0">
+          <h2 class="modal-title">{{ editMode ? 'Editar Usuario' : 'Nuevo Usuario' }}</h2>
+          <button @click="closeModal" type="button" class="icon-btn">
+            <i class="pi pi-times text-sm"></i>
+          </button>
         </div>
-        <div class="flex gap-4 mt-3 text-sm">
-          <button @click="openEditModal(user)" class="font-medium text-mantis-600">Editar</button>
-          <button @click="deleteUser(user.id)" class="font-medium text-red-500">Eliminar</button>
-        </div>
-      </div>
-    </div>
 
-    <!-- Modal -->
-    <div v-if="showModal" class="fixed inset-0 z-50 flex items-start justify-center pt-10 overflow-y-auto bg-black bg-opacity-40">
-      <div class="w-full max-w-md p-6 mx-4 bg-white rounded-lg shadow-md sm:mx-auto">
-        <h2 class="mb-4 text-xl font-bold">{{ editMode ? 'Editar Usuario' : 'Crear Usuario' }}</h2>
+        <form @submit.prevent="submit" class="flex flex-col flex-1 min-h-0">
+          <div class="p-4 space-y-4 overflow-y-auto sm:p-5">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label class="label">Nombre</label>
+                <input v-model="form.name" type="text" class="input" placeholder="Nombre completo" />
+              </div>
 
-        <form @submit.prevent="submit">
-          <div class="mb-4">
-            <label class="block mb-1">Nombre</label>
-            <input v-model="form.name" type="text" class="w-full p-2 border rounded" />
+              <div>
+                <label class="label">Correo electrónico</label>
+                <input v-model="form.email" type="email" class="input" placeholder="usuario@correo.com" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label class="label">Contraseña {{ editMode ? '(opcional)' : '' }}</label>
+                <input v-model="form.password" type="password" class="input" placeholder="••••••••" />
+              </div>
+
+              <div>
+                <label class="label">Confirmar Contraseña</label>
+                <input v-model="form.password_confirmation" type="password" class="input" placeholder="••••••••" />
+              </div>
+            </div>
+
+            <div>
+              <label class="label">Rol</label>
+              <select v-model="form.role" class="input">
+                <option value="admin">Admin</option>
+                <option value="cajero">Caja</option>
+                <option value="cocina">Cocina</option>
+                <option value="delivery">Delivery</option>
+              </select>
+            </div>
+
+            <div v-if="Object.keys(form.errors).length" class="p-3 text-xs text-red-700 border border-red-200 rounded-xl bg-red-50">
+              <ul class="space-y-0.5 list-disc list-inside">
+                <li v-for="(error, field) in form.errors" :key="field">{{ error }}</li>
+              </ul>
+            </div>
           </div>
 
-          <div class="mb-4">
-            <label class="block mb-1">Email</label>
-            <input v-model="form.email" type="email" class="w-full p-2 border rounded" />
-          </div>
-
-          <div class="mb-4">
-            <label class="block mb-1">Contraseña <span v-if="editMode">(opcional)</span></label>
-             <input v-model="form.password" type="password" class="w-full p-2 border rounded" />
-         </div>
-
-         <div class="mb-4">
-             <label class="block mb-1">Confirmar Contraseña</label>
-             <input v-model="form.password_confirmation" type="password" class="w-full p-2 border rounded" />
-           </div>
-
-          <div class="mb-4">
-            <label class="block mb-1">Rol</label>
-            <select v-model="form.role" class="w-full p-2 border rounded">
-              <option value="admin">Admin</option>
-              <option value="cajero">Caja</option>
-              <option value="cocina">Cocina</option>
-              <option value="delivery">Delivery</option>
-            </select>
-          </div>
-
-          <div class="flex flex-col justify-end gap-2 sm:flex-row">
-            <button type="button" @click="closeModal" class="w-full px-4 py-2 bg-gray-200 rounded sm:w-auto hover:bg-gray-300">Cancelar</button>
-            <button type="submit" class="w-full px-4 py-2 text-white rounded sm:w-auto bg-mantis-500 hover:bg-mantis-600">
-              {{ editMode ? 'Actualizar' : 'Guardar' }}
+          <div class="modal-footer justify-end gap-2 pb-safe shrink-0">
+            <button type="button" @click="closeModal" class="btn btn-secondary">Cancelar</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="pi pi-check text-xs"></i>
+              <span>{{ editMode ? 'Actualizar' : 'Guardar' }}</span>
             </button>
           </div>
         </form>
       </div>
     </div>
-  </div>
-  <div v-if="Object.keys(form.errors).length" class="mb-4 text-red-500">
-  <ul>
-    <li v-for="(error, field) in form.errors" :key="field">{{ error }}</li>
-  </ul>
-</div>
-    </AppLayout>
+  </AppLayout>
 </template>
-
 
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';

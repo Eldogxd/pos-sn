@@ -7,8 +7,8 @@ import Modulos from './modulos.vue';
 <template>
     <AppLayout title="Dashboard">
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                Panel Pricnipal
+            <h2 class="text-base font-bold text-gray-900 sm:text-lg">
+                Panel Principal
             </h2>
         </template>
 

@@ -28,14 +28,16 @@ class ProductController extends Controller
             'category' => 'required|string|max:255',
             'is_py' => 'nullable|boolean',
             'py_price' => 'nullable|numeric',
+            'is_active' => 'nullable|boolean',
         ]);
 
         Product::create([
             'name' => $request->name,
             'price' => $request->price,
             'category' => $request->category,
-            'is_py' => $request->is_py,
+            'is_py' => $request->boolean('is_py'),
             'py_price' => $request->py_price,
+            'is_active' => $request->boolean('is_active', true),
         ]);
 
         return redirect()->back();
@@ -48,9 +50,19 @@ class ProductController extends Controller
             'category' => 'nullable|string|max:255',
             'is_py' => 'nullable|boolean',
             'py_price' => 'nullable|numeric',
+            'is_active' => 'nullable|boolean',
         ]);
 
-        $product->update($request->only('name', 'price', 'category', 'is_py', 'py_price'));
+        $product->update($request->only('name', 'price', 'category', 'is_py', 'py_price', 'is_active'));
+
+        return redirect()->back();
+    }
+
+    public function toggleActive(Product $product)
+    {
+        $product->update([
+            'is_active' => ! $product->is_active,
+        ]);
 
         return redirect()->back();
     }

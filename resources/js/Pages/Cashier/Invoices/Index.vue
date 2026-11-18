@@ -1,225 +1,267 @@
 <template>
     <AppLayout title="Facturas Historial">
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">Facturas</h2>
-                
-            </div>
+            <NavCashier />
         </template>
 
-        <div class="p-6">
-  <!-- Barra de filtros moderna y responsive -->
-  <div class="p-4 mb-6 bg-white shadow-md rounded-xl">
-    <div class="flex flex-col gap-4 md:gap-5">
-      <!-- Fila 1: Búsqueda y Ordenamiento -->
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-12">
-        <!-- Campo de búsqueda -->
-        <div class="md:col-span-5">
-          <label class="block mb-2 text-sm font-medium text-gray-700">Buscar factura o cliente</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-              </svg>
-            </div>
-            <input v-model="filters.search" type="text" placeholder="Nº factura, cliente..." 
-                   class="w-full pl-10 transition-all duration-200 input focus:pl-10">
-          </div>
-        </div>
-        
-        <!-- Selector de ordenamiento -->
-        <div class="md:col-span-3">
-          <label class="block mb-2 text-sm font-medium text-gray-700">Ordenar por</label>
-          <div class="flex items-center">
-            <select v-model="filters.sort_by" class="flex-1 border-r-0 rounded-r-none input">
-              <option value="created_at">Fecha</option>
-              <option value="total">Total</option>
-              <option value="invoice_number">Nº Factura</option>
-            </select>
-            <button @click="toggleSortDirection" 
-                    class="px-3 py-2.5 text-gray-600 bg-gray-100 border border-gray-300 rounded-r-md hover:bg-gray-200 transition-colors">
-              <svg v-if="filters.sort_dir === 'asc'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-              </svg>
-              <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-        
-        <!-- Estado actual del orden -->
-        <div class="flex items-end md:col-span-4">
-          <div class="w-full px-4 py-2 text-sm text-center text-gray-600 rounded-md bg-gray-50">
-            Orden: <strong class="capitalize">{{ filters.sort_by }} {{ filters.sort_dir }}</strong>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Fila 2: Filtros adicionales -->
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-12">
-        <!-- Rango de fechas -->
-        <div class="md:col-span-4">
-          <label class="block mb-2 text-sm font-medium text-gray-700">Rango de fechas</label>
-          <div class="grid grid-cols-2 gap-2">
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-              </div>
-              <input v-model="filters.date_from" type="date" class="pl-10 input">
-            </div>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-              </div>
-              <input v-model="filters.date_to" type="date" class="pl-10 input">
-            </div>
-          </div>
-        </div>
-        
-        <!-- Rango de total -->
-        <div class="md:col-span-4">
-          <label class="block mb-2 text-sm font-medium text-gray-700">Rango de total (C$)</label>
-          <div class="grid grid-cols-2 gap-2">
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <span class="text-gray-400">C$</span>
-              </div>
-              <input v-model.number="filters.min_total" type="number" step="0.01" placeholder="Mínimo" class="pl-10 input">
-            </div>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <span class="text-gray-400">C$</span>
-              </div>
-              <input v-model.number="filters.max_total" type="number" step="0.01" placeholder="Máximo" class="pl-10 input">
-            </div>
-          </div>
-        </div>
-        
-        <!-- Tipo de orden y estado -->
-        <div class="md:col-span-4">
-          <label class="block mb-2 text-sm font-medium text-gray-700">Filtros adicionales</label>
-          <div class="grid grid-cols-2 gap-2">
-            <select v-model="filters.order_type" class="input">
-              <option value="">Tipo (Todos)</option>
-              <option value="mesa">Mesa</option>
-              <option value="delivery">Delivery</option>
-              <option value="llevar">Para llevar</option>
-            </select>
-            <select v-model="filters.status" class="input">
-              <option value="">Estado (Todos)</option>
-              <option value="created">Pagada</option>
-              <option value="cancelled">Anulada</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Fila 3: Botones de acción -->
-      <div class="flex flex-col gap-3 mt-2 sm:flex-row sm:items-center">
-        <button @click="applyFilters" class="flex items-center justify-center gap-2 btn-primary">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-          </svg>
-          Aplicar Filtros
-        </button>
-        <button @click="clearFilters" class="flex items-center justify-center gap-2 btn-secondary">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-          </svg>
-          Limpiar Filtros
-        </button>
-        
-        <!-- Contador de resultados (opcional) -->
-        <div class="hidden ml-auto text-sm text-gray-600 sm:block">
-          Mostrando <strong>{{ invoices.data.length }}</strong> de <strong>{{ invoices.total }}</strong> facturas
-        </div>
-      </div>
-    </div>
-  </div>
+        <div class="p-3 mx-auto space-y-4 max-w-7xl sm:p-6">
+            <!-- Barra de búsqueda y filtros -->
+            <div class="p-3.5 card sm:p-5">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <div class="flex-1 min-w-0">
+                        <label class="label">Buscar factura o cliente</label>
+                        <div class="relative">
+                            <i class="pi pi-search text-xs text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                            <input
+                                v-model="filters.search"
+                                @keyup.enter="applyFilters"
+                                type="text"
+                                placeholder="Nº factura, cliente o RUC..."
+                                class="pl-9 input"
+                            >
+                        </div>
+                    </div>
 
-  <!-- Resto del contenido de la tabla permanece igual -->
-  <div class="overflow-x-auto bg-white shadow-md rounded-2xl">
-                <table class="min-w-full text-sm text-gray-700">
-                    <thead class="bg-gray-100 border-b">
-                        <tr>
-                            <th class="px-6 py-3 text-xs font-semibold tracking-wide text-center uppercase">N° Factura</th>
-                            <th class="px-6 py-3 text-xs font-semibold tracking-wide text-center uppercase">Cliente</th>
-                            <th class="px-6 py-3 text-xs font-semibold tracking-wide text-center uppercase">Ruc Cliente</th>
-                            <th class="px-6 py-3 text-xs font-semibold tracking-wide text-center uppercase">SubTotal</th>
-                            <th @click="toggleSort('total')" class="px-6 py-3 text-xs font-semibold tracking-wide text-center uppercase cursor-pointer">
-                                Total
-                                <span v-if="filters.sort_by === 'total'">
-                                    <span v-if="filters.sort_dir === 'desc'">⬇</span><span v-else>⬆</span>
-                                </span>
-                            </th>
-                            <th class="px-6 py-3 text-xs font-semibold tracking-wide text-center uppercase">Estado</th>
-                            <th class="px-6 py-3 text-xs font-semibold tracking-wide text-center uppercase">Fecha y Hora</th>
-                            <th class="px-6 py-3 text-xs font-semibold tracking-wide text-center uppercase">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <tr v-for="invoice in invoices.data" :key="invoice.id" class="text-center transition hover:bg-gray-50">
-                            <td class="px-6 py-4">{{ invoice.invoice_number }}</td>
-                            <td class="px-6 py-4">{{ invoice.fiscal_name ?? 'Sin Nombre' }}</td>
-                            <td class="px-6 py-4">{{ invoice.fiscal_ruc ?? 'Sin RUC' }}</td>
-                            <td class="px-6 py-4 font-medium">C${{ invoice.subtotal }}</td>
-                            <td class="px-6 py-4 font-bold text-gray-900">C${{ invoice.total }}</td>
-                            
-                            <!-- Celda de Estado (sin cambios) -->
-                            <td class="px-6 py-4">
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button
+                            type="button"
+                            @click="showMobileFilters = !showMobileFilters"
+                            class="btn btn-secondary md:hidden"
+                        >
+                            <i class="pi pi-sliders-h text-xs"></i>
+                            <span>Filtros</span>
+                            <span v-if="activeFiltersCount > 0" class="badge bg-mantis-600 text-white">{{ activeFiltersCount }}</span>
+                        </button>
+
+                        <button type="button" @click="applyFilters" class="btn btn-primary flex-1 sm:flex-initial">
+                            <i class="pi pi-search text-xs"></i>
+                            <span>Buscar</span>
+                        </button>
+
+                        <button
+                            v-if="activeFiltersCount > 0 || filters.search"
+                            type="button"
+                            @click="clearFilters"
+                            class="btn btn-secondary"
+                            title="Limpiar filtros"
+                        >
+                            <i class="pi pi-filter-slash text-xs"></i>
+                            <span class="hidden sm:inline">Limpiar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filtros avanzados (colapsables en móvil, visibles en desktop) -->
+                <div
+                    class="grid-cols-1 gap-3 pt-3 mt-3 border-t border-gray-100 sm:grid-cols-2 lg:grid-cols-6"
+                    :class="showMobileFilters ? 'grid' : 'hidden md:grid'"
+                >
+                    <div>
+                        <label class="label">Desde</label>
+                        <input v-model="filters.date_from" type="date" class="input">
+                    </div>
+                    <div>
+                        <label class="label">Hasta</label>
+                        <input v-model="filters.date_to" type="date" class="input">
+                    </div>
+                    <div>
+                        <label class="label">Mínimo (C$)</label>
+                        <input v-model.number="filters.min_total" type="number" step="0.01" placeholder="0.00" class="input">
+                    </div>
+                    <div>
+                        <label class="label">Máximo (C$)</label>
+                        <input v-model.number="filters.max_total" type="number" step="0.01" placeholder="0.00" class="input">
+                    </div>
+                    <div>
+                        <label class="label">Tipo de orden</label>
+                        <select v-model="filters.order_type" class="input">
+                            <option value="">Todos</option>
+                            <option value="mesa">Mesa</option>
+                            <option value="delivery">Delivery</option>
+                            <option value="llevar">Para llevar</option>
+                            <option value="pedidosya">PedidosYa</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Estado / Orden</label>
+                        <div class="flex gap-1.5">
+                            <select v-model="filters.status" class="input flex-1 min-w-0">
+                                <option value="">Todos</option>
+                                <option value="created">Pagada</option>
+                                <option value="cancelled">Anulada</option>
+                            </select>
+                            <button
+                                type="button"
+                                @click="toggleSortDirection"
+                                class="btn btn-secondary px-2.5 shrink-0"
+                                :title="`Orden actual: ${filters.sort_dir === 'asc' ? 'Ascendente' : 'Descendente'}`"
+                            >
+                                <i :class="filters.sort_dir === 'asc' ? 'pi pi-sort-amount-up' : 'pi pi-sort-amount-down'" class="text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 sm:col-span-2 lg:col-span-6 md:hidden pt-1">
+                        <select v-model="filters.sort_by" class="input flex-1">
+                            <option value="created_at">Ordenar: Fecha</option>
+                            <option value="total">Ordenar: Total</option>
+                            <option value="invoice_number">Ordenar: Nº Factura</option>
+                        </select>
+                        <button type="button" @click="applyFilters(); showMobileFilters = false" class="btn btn-primary">
+                            Aplicar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-3 mt-3 text-xs text-gray-500 border-t border-gray-100">
+                    <span>
+                        Mostrando <strong class="text-gray-800">{{ invoices.data.length }}</strong> de
+                        <strong class="text-gray-800">{{ invoices.total }}</strong> facturas
+                    </span>
+                    <div class="hidden md:flex items-center gap-2">
+                        <span>Ordenar por:</span>
+                        <select v-model="filters.sort_by" @change="applyFilters" class="px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-mantis-500">
+                            <option value="created_at">Fecha</option>
+                            <option value="total">Total</option>
+                            <option value="invoice_number">Nº Factura</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista Móvil: Tarjetas compactas -->
+            <div class="space-y-2.5 md:hidden">
+                <div v-if="invoices.data.length === 0" class="p-8 text-center text-sm text-gray-500 card">
+                    No hay facturas registradas
+                </div>
+
+                <div
+                    v-for="invoice in invoices.data"
+                    :key="`m-${invoice.id}`"
+                    class="p-3.5 card space-y-2.5"
+                >
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-bold text-gray-900">N° {{ invoice.invoice_number }}</span>
                                 <span
-                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full"
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full"
                                     :class="getStatusClasses(invoice.status)"
                                 >
-                                    <i :class="getStatusIcon(invoice.status)"></i>
+                                    <i :class="getStatusIcon(invoice.status)" class="text-[10px]"></i>
                                     {{ getStatusText(invoice.status) }}
                                 </span>
-                            </td>
+                            </div>
+                            <p class="mt-0.5 text-sm font-medium text-gray-800 truncate">
+                                {{ invoice.fiscal_name ?? 'Sin Nombre' }}
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                RUC: {{ invoice.fiscal_ruc ?? 'Sin RUC' }} · {{ formatDate(invoice.created_at) }}
+                            </p>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="text-base font-extrabold text-mantis-700 tabular-nums">C${{ invoice.total }}</div>
+                            <div class="text-[11px] text-gray-400 tabular-nums">Sub: C${{ invoice.subtotal }}</div>
+                        </div>
+                    </div>
 
-                            <td class="px-6 py-4 font-medium">{{ formatDate(invoice.created_at) }}</td>
-                            
-                            <!-- CELDA DE ACCIONES CON BOTONES ELEGANTES -->
-                            <td class="px-6 py-4">
-                                <div class="flex items-center justify-center gap-2">
-                                    <!-- Botón "Ver" rediseñado -->
-                                    <button 
-                                        @click="viewInvoice(invoice)" 
-                                        class="flex items-center gap-1 px-3 py-1 text-sm text-blue-500 transition-colors duration-200 border border-blue-500 rounded-lg hover:bg-blue-500 hover:text-white"
-                                        title="Ver Factura">
-                                        <i class="pi pi-eye"></i>
-                                        <span>Ver</span>
-                                    </button>
-                                    
-                                    <!-- Botón "Anular" rediseñado -->
-                                    <button 
-                                        v-if="user && user.role === 'admin' && invoice.status !== 'cancelled'" 
-                                        @click="annulInvoice(invoice)" 
-                                        class="flex items-center gap-1 px-3 py-1 text-sm text-red-500 transition-colors duration-200 border border-red-500 rounded-lg hover:bg-red-500 hover:text-white"
-                                        title="Anular Factura">
-                                        <i class="pi pi-ban"></i>
-                                        <span>Anular</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr v-if="invoices.data.length === 0">
-                            <td colspan="8" class="px-6 py-8 text-center text-gray-500">No hay facturas registradas</td>
-                        </tr>
-                    </tbody>
-                </table>
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                        <button
+                            @click="viewInvoice(invoice)"
+                            class="btn btn-outline flex-1 py-2 text-xs"
+                        >
+                            <i class="pi pi-eye text-xs"></i>
+                            <span>Ver / Imprimir</span>
+                        </button>
+                        <button
+                            v-if="user && user.role === 'admin' && invoice.status !== 'cancelled'"
+                            @click="annulInvoice(invoice)"
+                            class="btn btn-danger py-2 px-3 text-xs"
+                        >
+                            <i class="pi pi-ban text-xs"></i>
+                            <span>Anular</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-  <Pagination :links="invoices.links" />
-</div>
+            <!-- Vista Desktop: Tabla -->
+            <div class="hidden overflow-hidden card md:block">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm text-gray-700">
+                        <thead class="text-xs font-semibold tracking-wide text-gray-600 uppercase border-b border-gray-200 bg-gray-50">
+                            <tr>
+                                <th class="px-5 py-3.5 text-center">N° Factura</th>
+                                <th class="px-5 py-3.5 text-left">Cliente</th>
+                                <th class="px-5 py-3.5 text-center">RUC Cliente</th>
+                                <th class="px-5 py-3.5 text-right">SubTotal</th>
+                                <th @click="toggleSort('total')" class="px-5 py-3.5 text-right cursor-pointer select-none hover:text-mantis-700">
+                                    Total
+                                    <i
+                                        v-if="filters.sort_by === 'total'"
+                                        :class="filters.sort_dir === 'desc' ? 'pi pi-sort-down' : 'pi pi-sort-up'"
+                                        class="ml-1 text-[10px]"
+                                    ></i>
+                                </th>
+                                <th class="px-5 py-3.5 text-center">Estado</th>
+                                <th class="px-5 py-3.5 text-center">Fecha y Hora</th>
+                                <th class="px-5 py-3.5 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr v-for="invoice in invoices.data" :key="invoice.id" class="transition hover:bg-gray-50/70">
+                                <td class="px-5 py-3.5 font-semibold text-center text-gray-900 tabular-nums">{{ invoice.invoice_number }}</td>
+                                <td class="px-5 py-3.5 text-left">{{ invoice.fiscal_name ?? 'Sin Nombre' }}</td>
+                                <td class="px-5 py-3.5 text-center text-gray-600">{{ invoice.fiscal_ruc ?? 'Sin RUC' }}</td>
+                                <td class="px-5 py-3.5 font-medium text-right tabular-nums">C${{ invoice.subtotal }}</td>
+                                <td class="px-5 py-3.5 font-bold text-right text-gray-900 tabular-nums">C${{ invoice.total }}</td>
+                                <td class="px-5 py-3.5 text-center">
+                                    <span
+                                        class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full"
+                                        :class="getStatusClasses(invoice.status)"
+                                    >
+                                        <i :class="getStatusIcon(invoice.status)" class="text-[11px]"></i>
+                                        {{ getStatusText(invoice.status) }}
+                                    </span>
+                                </td>
+                                <td class="px-5 py-3.5 text-center text-gray-600 whitespace-nowrap">{{ formatDate(invoice.created_at) }}</td>
+                                <td class="px-5 py-3.5">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <button
+                                            @click="viewInvoice(invoice)"
+                                            class="btn btn-outline py-1.5 px-3 text-xs"
+                                            title="Ver Factura"
+                                        >
+                                            <i class="pi pi-eye text-xs"></i>
+                                            <span>Ver</span>
+                                        </button>
+
+                                        <button
+                                            v-if="user && user.role === 'admin' && invoice.status !== 'cancelled'"
+                                            @click="annulInvoice(invoice)"
+                                            class="btn btn-danger py-1.5 px-3 text-xs"
+                                            title="Anular Factura"
+                                        >
+                                            <i class="pi pi-ban text-xs"></i>
+                                            <span>Anular</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr v-if="invoices.data.length === 0">
+                                <td colspan="8" class="px-6 py-10 text-center text-gray-500">No hay facturas registradas</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <Pagination :links="invoices.links" />
+        </div>
     </AppLayout>
 </template>
 <script setup>
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
  import { usePage, router } from '@inertiajs/vue3';
  import { route } from 'ziggy-js';
  import axios from 'axios';
@@ -227,6 +269,7 @@ import { computed, reactive } from 'vue';
  import AppLayout from '@/Layouts/AppLayout.vue';
  import NavCashier from '@/Layouts/NavCashier.vue';
  import Pagination from '@/Components/Pagination.vue';
+ import { escapeHtml } from '@/Utils/thermalPrinter';
  
  const page = usePage();
  const user = computed(() => page.props.auth.user);
@@ -249,6 +292,12 @@ import { computed, reactive } from 'vue';
      status: page.props.filters?.status ?? '',
      sort_by: page.props.filters?.sort_by ?? 'created_at',
      sort_dir: page.props.filters?.sort_dir ?? 'desc',
+});
+
+const showMobileFilters = ref(false);
+const activeFiltersCount = computed(() => {
+    const keys = ['date_from', 'date_to', 'min_total', 'max_total', 'order_type', 'status'];
+    return keys.filter(k => filters[k] !== '' && filters[k] !== null && filters[k] !== undefined).length;
 });
 
 function applyFilters() {
@@ -278,13 +327,18 @@ function toggleSort(field) {
     }
     applyFilters();
 }
+
+function toggleSortDirection() {
+    filters.sort_dir = filters.sort_dir === 'desc' ? 'asc' : 'desc';
+    applyFilters();
+}
  
  // --- FUNCIONES PARA ESTILIZAR EL ESTADO ---
  
  function getStatusClasses(status) {
      switch (status) {
          case 'created':
-             return 'bg-green-100 text-green-800';
+             return 'bg-mantis-100 text-mantis-800';
          case 'cancelled':
              return 'bg-red-100 text-red-800';
          default:
@@ -331,7 +385,11 @@ function toggleSort(field) {
  }
  
  function getInvoiceHtml(invoice) {
-     if (!invoice?.order?.order_items) {
+     const itemsToPrint = invoice?.order_items?.length
+         ? invoice.order_items
+         : (invoice?.order?.order_items || []);
+
+     if (!itemsToPrint.length) {
          console.error("Datos de la factura incompletos.", invoice);
          Swal.fire('Error', 'Los datos de esta factura están incompletos y no se puede generar la vista.', 'error');
          return null;
@@ -339,10 +397,10 @@ function toggleSort(field) {
  
      const date = formatDate(invoice.created_at);
  
-     const productsHTML = invoice.order.order_items.map(item => `
+     const productsHTML = itemsToPrint.map(item => `
          <tr>
-             <td style="text-align: center; vertical-align: top;">${item.quantity}</td>
-             <td style="vertical-align: top;">${item.product.name}</td>
+             <td style="text-align: center; vertical-align: top;">${escapeHtml(item.quantity)}</td>
+             <td style="vertical-align: top;">${escapeHtml(item.product?.name || 'Producto')}</td>
              <td style="text-align: right; vertical-align: top;">C$${(item.price * item.quantity).toFixed(2)}</td>
          </tr>
      `).join('');
@@ -350,7 +408,7 @@ function toggleSort(field) {
      let discountHTML = '';
      if (invoice.discount_type && invoice.discount_value > 0) {
          const discountLabel = invoice.discount_type === 'percent'
-             ? `${invoice.discount_value}%`
+             ? `${escapeHtml(invoice.discount_value)}%`
              : `C$${parseFloat(invoice.discount_value).toFixed(2)}`;
          
          const discountAmount = invoice.discount_amount ?? (invoice.subtotal - invoice.total);
@@ -364,7 +422,7 @@ function toggleSort(field) {
          <html>
              <head>
                  <meta charset="UTF-8">
-                 <title>Factura N° ${invoice.invoice_number}</title>
+                 <title>Factura N° ${escapeHtml(invoice.invoice_number)}</title>
                   <style>
                      body { width: 57mm; font-size: 14px; margin: 0; padding: 4px; font-family: Arial, sans-serif; line-height: 1.2; }
                      .center { text-align: center; }
@@ -384,13 +442,13 @@ function toggleSort(field) {
                      <p>Del Busto José Martí<br>2 cuadras al Este, 10 vrs al Norte.</p>
                      <p>Teléfono: +505 8352 9705</p>
                       
-                        <p><strong>Factura N°: ${invoice.invoice_number}</strong></p>
+                        <p><strong>Factura N°: ${escapeHtml(invoice.invoice_number)}</strong></p>
                      
                  </div>
                  <hr>
-                 <p><strong>Fecha:</strong> ${date}</p>
-                 <p><strong>Cliente:</strong> ${invoice.fiscal_name || 'Consumidor Final'}</p>
-                 <p><strong>RUC:</strong> ${invoice.fiscal_ruc || ''}</p>
+                 <p><strong>Fecha:</strong> ${escapeHtml(date)}</p>
+                 <p><strong>Cliente:</strong> ${escapeHtml(invoice.fiscal_name || 'Consumidor Final')}</p>
+                 <p><strong>RUC:</strong> ${escapeHtml(invoice.fiscal_ruc || '')}</p>
                  <hr>
                  <table>
                      <thead>

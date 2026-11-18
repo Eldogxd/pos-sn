@@ -14,7 +14,7 @@ class RiderController extends Controller
     public function index()
     {
         $riders = Riders::orderByDesc('created_at')->get();
-        return Inertia::render('Admin/RIders/Index', [
+        return Inertia::render('Admin/Riders/Index', [
             'riders' => $riders,
         ]);
     }
