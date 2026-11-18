@@ -5,7 +5,49 @@
     </template>
 
     <Toast />
-    <ConfirmDialog group="delivery" />
+    <ConfirmDialog group="delivery">
+      <template #container="{ message, acceptCallback, rejectCallback }">
+        <div class="flex flex-col w-full bg-white">
+          <div class="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
+            <div class="flex items-center min-w-0 gap-3">
+              <span
+                class="flex items-center justify-center w-10 h-10 rounded-xl shrink-0"
+                :class="['anul', 'cancel', 'elimin'].some(w => (message?.header || '').toLowerCase().includes(w))
+                  ? 'bg-red-100 text-red-600'
+                  : 'bg-mantis-100 text-mantis-700'"
+              >
+                <i :class="message?.icon || 'pi pi-question-circle'" class="text-lg"></i>
+              </span>
+              <h3 class="text-base font-bold leading-tight text-gray-900">{{ message?.header || 'Confirmación' }}</h3>
+            </div>
+          </div>
+
+          <div class="px-5 pb-5">
+            <p class="text-sm leading-relaxed text-gray-600">{{ message?.message }}</p>
+          </div>
+
+          <div class="flex items-center justify-between gap-8 px-5 py-3.5 bg-gray-50 border-t border-gray-100">
+            <button
+              type="button"
+              @click="rejectCallback"
+              class="btn btn-outline min-w-[7rem] h-11 px-5"
+            >
+              {{ message?.rejectLabel || 'No' }}
+            </button>
+            <button
+              type="button"
+              @click="acceptCallback"
+              class="btn min-w-[7.5rem] h-11 px-5"
+              :class="['anul', 'cancel', 'elimin'].some(w => (message?.header || '').toLowerCase().includes(w))
+                ? 'btn-danger'
+                : 'btn-primary'"
+            >
+              {{ message?.acceptLabel || 'Sí' }}
+            </button>
+          </div>
+        </div>
+      </template>
+    </ConfirmDialog>
 
     <div class="p-3 mx-auto space-y-4 max-w-7xl sm:p-6">
       <!-- Barra superior: Título, Filtros de estado y Nueva orden -->
@@ -157,7 +199,7 @@
 
     <!-- MODAL CREAR / EDITAR ORDEN DELIVERY -->
     <div v-if="showModal" class="modal-backdrop">
-      <div class="modal-sheet w-full max-w-6xl lg:h-[90vh]">
+      <div class="modal-sheet w-full max-w-6xl h-[92dvh] sm:h-[90vh]">
         <!-- Header del modal -->
         <div class="modal-header shrink-0">
           <div class="flex items-center gap-2.5 min-w-0">
@@ -462,7 +504,7 @@
           >
             <!-- Lista compacta de productos -->
             <div class="flex-1 min-h-0 overflow-y-auto bg-white divide-y divide-gray-200/80">
-              <div v-if="selectedProducts.length === 0" class="flex flex-col items-center justify-center h-40 p-6 text-center text-gray-400">
+              <div v-if="selectedProducts.length === 0" class="flex flex-col items-center justify-center h-full p-6 text-center text-gray-400">
                 <i class="pi pi-shopping-bag text-2xl mb-1.5"></i>
                 <p class="text-xs">Agrega productos del menú</p>
               </div>
@@ -753,7 +795,7 @@
     </div>
 
     <!-- MODAL PRECIO MANUAL -->
-    <div v-if="showCustomModal" class="modal-backdrop">
+    <div v-if="showCustomModal" class="modal-backdrop z-[70]">
       <div class="w-full max-w-sm modal-sheet lg:h-auto">
         <div class="modal-header">
           <h3 class="flex items-center gap-2 modal-title">
@@ -977,7 +1019,6 @@ const orderInstructions = ref('');
 const paymentMethod = ref('');
 const cashAmount = ref(0);
 const deliveryNotes = ref('');
-
 
 function openModal() {
     clearCustomer();
@@ -1243,21 +1284,25 @@ function startEditOrder(){
 function submitOrder() {
   // Validaciones más específicas
   if (!customer.value.name) {
+    deliveryTab.value = 'customer';
     toast.add({ severity: 'error', summary: 'Error de Validación', detail: 'Por favor, complete el nombre del cliente.', life: 4000 });
     return;
   }
 
   if (!customer.value.selectedAddress) {
+    deliveryTab.value = 'customer';
     toast.add({ severity: 'error', summary: 'Error de Validación', detail: 'Debe ingresar una dirección de entrega.', life: 4000 });
     return;
   }
 
   if (selectedProducts.value.length === 0) {
+    deliveryTab.value = 'menu';
     toast.add({ severity: 'error', summary: 'Error de Validación', detail: 'Debe agregar al menos un producto a la orden.', life: 4000 });
     return;
   }
 
   if (!paymentMethod.value || paymentMethod.value === 'null') {
+    deliveryTab.value = 'customer';
     toast.add({ severity: 'error', summary: 'Error de Validación', detail: 'Debe seleccionar un método de pago.', life: 4000 });
     return;
   }

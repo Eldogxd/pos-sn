@@ -75,6 +75,7 @@ class OrderController extends Controller
             } else {
                 $customer->update([
                     'name' => $customerData['name'],
+                    'phone' => $customerData['phone'],
                     'fiscal_name' => $customerData['fiscal_name'] ?? null,
                     'fiscal_ruc' => $customerData['fiscal_ruc'] ?? null,
                 ]);
@@ -437,6 +438,7 @@ class OrderController extends Controller
             } else {
                 $customer->update([
                     'name' => $customerData['name'],
+                    'phone' => $customerData['phone'],
                     'fiscal_name' => $customerData['fiscal_name'] ?? null,
                     'fiscal_ruc' => $customerData['fiscal_ruc'] ?? null,
                 ]);

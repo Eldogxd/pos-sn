@@ -23,9 +23,11 @@
           <button @click="openTakeawayModal" class="h-12 btn btn-primary sm:h-11">
             <i class="pi pi-shopping-bag"></i> Para llevar
           </button>
-          <button @click="openPedidosYaModal" class="h-12 btn btn-pedidosya sm:h-11">
+
+          <!-- <button @click="openPedidosYaModal" class="h-12 btn btn-pedidosya sm:h-11">
             <i class="pi pi-send"></i> PedidosYa
-          </button>
+          </button> -->
+          
         </div>
       </div>
 
@@ -582,7 +584,49 @@
 
   </AppLayout>
   <Toast />
-  <ConfirmDialog group="pos" />
+  <ConfirmDialog group="pos">
+    <template #container="{ message, acceptCallback, rejectCallback }">
+      <div class="flex flex-col w-full bg-white">
+        <div class="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
+          <div class="flex items-center min-w-0 gap-3">
+            <span
+              class="flex items-center justify-center w-10 h-10 rounded-xl shrink-0"
+              :class="['anul', 'cancel', 'elimin'].some(w => (message?.header || '').toLowerCase().includes(w))
+                ? 'bg-red-100 text-red-600'
+                : 'bg-mantis-100 text-mantis-700'"
+            >
+              <i :class="message?.icon || 'pi pi-question-circle'" class="text-lg"></i>
+            </span>
+            <h3 class="text-base font-bold leading-tight text-gray-900">{{ message?.header || 'Confirmación' }}</h3>
+          </div>
+        </div>
+
+        <div class="px-5 pb-5">
+          <p class="text-sm leading-relaxed text-gray-600">{{ message?.message }}</p>
+        </div>
+
+        <div class="flex items-center justify-between gap-8 px-5 py-3.5 bg-gray-50 border-t border-gray-100">
+          <button
+            type="button"
+            @click="rejectCallback"
+            class="btn btn-outline min-w-[7rem] h-11 px-5"
+          >
+            {{ message?.rejectLabel || 'No' }}
+          </button>
+          <button
+            type="button"
+            @click="acceptCallback"
+            class="btn min-w-[7.5rem] h-11 px-5"
+            :class="['anul', 'cancel', 'elimin'].some(w => (message?.header || '').toLowerCase().includes(w))
+              ? 'btn-danger'
+              : 'btn-primary'"
+          >
+            {{ message?.acceptLabel || 'Sí' }}
+          </button>
+        </div>
+      </div>
+    </template>
+  </ConfirmDialog>
 </template>
 
 <script setup>

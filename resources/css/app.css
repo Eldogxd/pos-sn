@@ -115,3 +115,11 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .pb-safe { padding-bottom: max(0.625rem, env(safe-area-inset-bottom)); }
 }
+
+/* ---------- ConfirmDialog (botones separados en extremos opuestos) ---------- */
+.p-dialog-mask:has(.p-confirm-dialog) {
+    z-index: 2100 !important;
+}
+.p-dialog.p-confirm-dialog {
+    @apply w-[92vw] max-w-md rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-2xl p-0;
+}
