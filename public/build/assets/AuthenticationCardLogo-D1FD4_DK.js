@@ -1,0 +1,1 @@
+import{c as e,o as s,w as t,a as r,u as o,S as n}from"./app-BlClDFVX.js";const u={__name:"AuthenticationCardLogo",setup(c){return(l,a)=>(s(),e(o(n),{href:"/"},{default:t(()=>a[0]||(a[0]=[r("img",{src:"/images/sopasnikas2.png",alt:"logo",class:"w-20 h-20 text-gray-500 fill-current"},null,-1)])),_:1}))}};export{u as _};
